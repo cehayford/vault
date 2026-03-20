@@ -1,0 +1,11 @@
+.env
+*.env
+.env.local
+
+# Local HTTPS dev server certs (run_https.bat)
+devserver.crt
+devserver.key
+
+# Logs containing sensitive data
+logs/
+*.log
