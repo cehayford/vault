@@ -55,7 +55,7 @@ class Command(BaseCommand):
         cert_file = base_dir / "devserver.crt"
         if not cert_file.exists():
             self.stdout.write(
-                self.style.WARNING("First run may create devserver.crt and devserver.key in the project root.")
+                self.style.WARNING("First run may create devserver.crt and devserver.key in project root.")
             )
         try:
             t = threading.Thread(target=run_http_redirect, daemon=True)

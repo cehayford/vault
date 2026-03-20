@@ -1,8 +1,8 @@
 """
 Middleware to avoid IntegrityError when django-axes logs login:
 axes_accesslog.session_hash is NOT NULL, but request.session.session_key can be None
-until the session is saved (e.g. on /accounts/login/ via allauth).
-Ensuring the session has a key before the view runs fixes axes logging.
+until session is saved (e.g. on /accounts/login/ via allauth).
+Ensuring session has a key before view runs fixes axes logging.
 """
 
 
