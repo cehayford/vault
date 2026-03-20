@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block footer %}{% endblock %}
+{% block head %}<title>Two-factor verification</title>{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full">
+        <div class="card overflow-hidden border border-border shadow-deep">
+            <div class="bg-accent px-6 py-5 text-center border-b border-border">
+                <div class="w-12 h-12 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-inverse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-display font-bold text-inverse tracking-tight">Two-factor verification</h1>
+                <p class="text-inverse/90 text-sm mt-1">Enter the code from your authenticator app</p>
+            </div>
+            <div class="px-6 py-6 space-y-6">
+                {% if form.errors %}
+                <div id="mfaError" class="rounded-lg border border-red-500/40 bg-red-500/10 p-4 flex items-start justify-between gap-3">
+                    <p class="text-sm text-foreground">Invalid code. Please try again or use a backup code.</p>
+                    <button type="button" onclick="document.getElementById('mfaError').remove()" class="flex-shrink-0 text-muted hover:text-foreground p-1" aria-label="Dismiss">×</button>
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'userauth:mfa_verify' %}" class="space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="mfa_session_token" value="{{ mfa_session_token }}">
+                    <div>
+                        <label for="token" class="block text-xs font-semibold text-foreground mb-1.5">Verification code</label>
+                        <input type="text" name="token" id="token" maxlength="6" pattern="[0-9]{6}" required
+                               placeholder="000000" autocomplete="one-time-code" autofocus
+                               class="w-full px-4 py-3 text-center text-xl tracking-[0.3em] rounded-lg border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast">
+                    </div>
+                    <button type="submit" class="btn-primary w-full py-2.5 text-sm">Verify</button>
+                </form>
+
+                <div class="border-t border-border pt-4">
+                    <button type="button" onclick="document.getElementById('backupSection').classList.toggle('hidden')" class="text-sm text-accent font-medium hover:text-accent-hover">
+                        Use a backup code
+                    </button>
+                    <div id="backupSection" class="hidden mt-4 p-4 rounded-lg border border-border bg-secondary/30 space-y-3">
+                        <p class="text-xs text-muted">Enter one of your single-use backup codes.</p>
+                        <form method="post" action="{% url 'userauth:mfa_verify' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="mfa_session_token" value="{{ mfa_session_token }}">
+                            <input type="hidden" name="use_backup_code" value="1">
+                            <input type="text" name="backup_code" id="backup_code" maxlength="8" required placeholder="Backup code"
+                                   class="w-full px-4 py-2.5 rounded-lg border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none text-sm mb-3">
+                            <button type="submit" class="btn-secondary w-full py-2.5 text-sm">Verify backup code</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-border bg-secondary/30 p-4">
+                    <p class="text-xs text-muted">
+                        <strong class="text-foreground">Having trouble?</strong> Ensure your device time is synced, try a new code from your app, or use a backup code.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tokenInput = document.getElementById('token');
+    if (tokenInput) {
+        tokenInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+            if (this.value.length === 6) setTimeout(() => this.form.submit(), 200);
+        });
+        tokenInput.focus();
+    }
+    const err = document.getElementById('mfaError');
+    if (err) setTimeout(function() { err.remove(); }, 6000);
+});
+</script>
+{% endblock %}

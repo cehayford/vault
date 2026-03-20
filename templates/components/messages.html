@@ -1,0 +1,144 @@
+{% if messages %}
+<div id="messagesContainer" class="fixed top-24 right-4 z-50 space-y-4 max-w-md">
+    {% for message in messages %}
+        <div class="message-alert bg-{% if message.tags == 'success' %}green-50{% elif message.tags == 'error' %}red-50{% elif message.tags == 'warning' %}yellow-50{% elif message.tags == 'info' %}blue-50{% else %}amber-50{% endif %} border-4 {% if message.tags == 'success' %}border-green-900{% elif message.tags == 'error' %}border-red-900{% elif message.tags == 'warning' %}border-yellow-900{% elif message.tags == 'info' %}border-blue-900{% else %}border-amber-900{% endif %} px-6 py-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-slide-in" role="alert">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 mr-3">
+                    {% if message.tags == 'success' %}
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                    {% elif message.tags == 'error' %}
+                        <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </div>
+                    {% elif message.tags == 'warning' %}
+                        <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                        </div>
+                    {% elif message.tags == 'info' %}
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    {% else %}
+                        <div class="w-10 h-10 bg-amber-900 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    <p class="font-bold uppercase tracking-wide {% if message.tags == 'success' %}text-green-900{% elif message.tags == 'error' %}text-red-900{% elif message.tags == 'warning' %}text-yellow-900{% elif message.tags == 'info' %}text-blue-900{% else %}text-amber-900{% endif %} font-mono text-sm">
+                        {% if message.tags == 'success' %}SUCCESS{% elif message.tags == 'error' %}ERROR{% elif message.tags == 'warning' %}WARNING{% elif message.tags == 'info' %}INFO{% else %}NOTICE{% endif %}
+                    </p>
+                    <p class="{% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% elif message.tags == 'warning' %}text-yellow-800{% elif message.tags == 'info' %}text-blue-800{% else %}text-amber-800{% endif %} font-mono text-sm mt-1">
+                        {{ message }}
+                    </p>
+                </div>
+                <button onclick="dismissMessage(this)" class="ml-4 flex-shrink-0 {% if message.tags == 'success' %}text-green-900 hover:bg-green-900 hover:text-white{% elif message.tags == 'error' %}text-red-900 hover:bg-red-900 hover:text-white{% elif message.tags == 'warning' %}text-yellow-900 hover:bg-yellow-900 hover:text-white{% elif message.tags == 'info' %}text-blue-900 hover:bg-blue-900 hover:text-white{% else %}text-amber-900 hover:bg-amber-900 hover:text-white{% endif %} p-2 transition-all duration-200 border-2 border-transparent hover:border-current rounded">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+    function dismissMessage(button) {
+        const messageAlert = button.closest('.message-alert');
+        messageAlert.classList.add('animate-fade-out');
+        setTimeout(() => {
+            messageAlert.remove();
+        }, 300);
+    }
+    
+    // Auto-dismiss messages after 8 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.querySelectorAll('.message-alert');
+        
+        messages.forEach(function(message) {
+            setTimeout(function() {
+                if (message.parentElement) {
+                    message.classList.add('animate-fade-out');
+                    setTimeout(function() {
+                        if (message.parentElement) {
+                            message.remove();
+                        }
+                    }, 300);
+                }
+            }, 8000);
+        });
+    });
+</script>
+
+<style>
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%) rotate(2deg);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0) rotate(0deg);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%) rotate(-2deg);
+        }
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    .animate-fade-out {
+        animation: fadeOut 0.3s ease-out forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+        #messagesContainer {
+            left: 1rem;
+            right: 1rem;
+            max-width: none;
+        }
+        
+        .message-alert {
+            padding: 1rem;
+        }
+        
+        .message-alert .flex {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .message-alert .flex-shrink-0 {
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .message-alert button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+    }
+</style>
+{% endif %}

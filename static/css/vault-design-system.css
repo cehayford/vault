@@ -1,0 +1,301 @@
+/**
+ * PayJustNow Business — Design System Tokens
+ * Light theme: white/cream backgrounds, dark text, gold accent.
+ * Use CSS custom properties only; no inline styles.
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+   * I. COLOR PALETTE (light: white → cream → gold accent → dark text)
+   * ───────────────────────────────────────────────────────────────────────── */
+  --color-bg-primary: #FAFAF8;
+  --color-bg-secondary: #EDEBE5;
+  --color-accent-primary: #C7A003;
+  --color-accent-hover: #D4AD0A;
+  --color-accent-rgb: 199, 160, 3;
+  --color-text-primary: #151F1E;
+  --color-text-muted: rgba(21, 31, 30, 0.7);
+  --color-text-inverse: #FFFFFF;
+  --color-border: rgba(21, 31, 30, 0.12);
+  --color-surface-card: #FFFFFF;
+  --color-surface-card-light: #F5F3EE;
+  --color-overlay: rgba(21, 31, 30, 0.5);
+  --button-primary-bg: var(--color-accent-primary);
+  --button-primary-bg-hover: var(--color-accent-hover);
+  --button-primary-text: var(--color-text-inverse);
+  --button-secondary-bg: transparent;
+  --button-secondary-bg-hover: rgba(var(--color-accent-rgb), 0.12);
+  --button-secondary-border: var(--color-accent-primary);
+  --button-secondary-border-hover: var(--color-accent-hover);
+  --button-secondary-text: var(--color-accent-primary);
+  --button-secondary-text-hover: var(--color-accent-hover);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * TYPOGRAPHY SCALE
+   * ───────────────────────────────────────────────────────────────────────── */
+  --font-family-display: "Plus Jakarta Sans", "DM Sans", system-ui, sans-serif;
+  --font-family-body: "DM Sans", "Inter", system-ui, sans-serif;
+
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-hero: clamp(1.75rem, 4vw, 3rem);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight: 1.1;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --letter-spacing-tight: -0.03em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.08em;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * SPACING SCALE (8pt grid)
+   * ───────────────────────────────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * BORDER RADIUS
+   * ───────────────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * SHADOWS (softer for light theme)
+   * ───────────────────────────────────────────────────────────────────────── */
+  --shadow-card: 0 2px 12px rgba(21, 31, 30, 0.08);
+  --shadow-button: 0 0 20px rgba(199, 160, 3, 0.35);
+  --shadow-deep: 0 8px 24px rgba(21, 31, 30, 0.12);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * TRANSITIONS
+   * ───────────────────────────────────────────────────────────────────────── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * LAYOUT
+   * ───────────────────────────────────────────────────────────────────────── */
+  --container-max-width: 1280px;
+  --container-padding-x: clamp(1rem, 5vw, 6rem);
+  --section-padding-y: clamp(3rem, 8vw, 8rem);
+  --grid-gap: 24px;
+  --nav-height: 72px;
+  --nav-height-mobile: 60px;
+  --nav-utility-bar-height: 36px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * VI. RESPONSIVE BREAKPOINTS (use in media queries min-width)
+   * ───────────────────────────────────────────────────────────────────────── */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+}
+
+[data-theme="dark"] {
+  --background-color: #111827;
+  --text-color: #F9FAFB;
+  --secondary-color: #9CA3AF;
+
+  --color-bg-primary: #10131A;
+  --color-bg-secondary: #181C24;
+  --color-accent-primary: #C8CDD5;
+  --color-accent-hover: #E3E7ED;
+  --color-accent-rgb: 200, 205, 213;
+  --color-text-primary: #F5F7FA;
+  --color-text-muted: rgba(245, 247, 250, 0.72);
+  --color-text-inverse: #111827;
+  --color-border: rgba(156, 163, 175, 0.28);
+  --color-surface-card: #161B24;
+  --color-surface-card-light: #1F2631;
+  --color-overlay: rgba(3, 7, 14, 0.72);
+  --button-primary-bg: #D2D7DE;
+  --button-primary-bg-hover: #ECEFF4;
+  --button-primary-text: #0F172A;
+  --button-secondary-bg: rgba(200, 205, 213, 0.08);
+  --button-secondary-bg-hover: rgba(227, 231, 237, 0.16);
+  --button-secondary-border: #A6ADB8;
+  --button-secondary-border-hover: #E3E7ED;
+  --button-secondary-text: #D7DCE4;
+  --button-secondary-text-hover: #F9FAFB;
+  --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.35);
+  --shadow-button: 0 0 18px rgba(229, 231, 235, 0.22);
+  --shadow-deep: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * GLOBAL: Apply design system to all pages (every template extending base)
+ * ───────────────────────────────────────────────────────────────────────── */
+html {
+  font-size: 14px;
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-body);
+}
+
+body a {
+  color: var(--color-accent-primary);
+}
+
+body a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Ensure block content areas use design tokens when no Tailwind class set */
+#main,
+main,
+[role="main"] {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Legacy overrides: apply design system to every template using old amber/black/white */
+#main .bg-amber-50,
+#main .bg-amber-100 { background-color: var(--color-bg-primary) !important; }
+#main .bg-white { background-color: var(--color-surface-card) !important; }
+#main .bg-amber-900,
+#main .bg-black { background-color: var(--color-accent-primary) !important; }
+#main .text-amber-900,
+#main .text-black { color: var(--color-text-primary) !important; }
+#main .text-amber-700,
+#main .text-amber-100,
+#main .text-gray-700 { color: var(--color-text-muted) !important; }
+#main .text-white { color: var(--color-text-inverse) !important; }
+#main .border-amber-900,
+#main .border-amber-200,
+#main .border-black { border-color: var(--color-border) !important; }
+#main input { border-color: var(--color-border); background-color: var(--color-surface-card); color: var(--color-text-primary); }
+#main input:focus { border-color: var(--color-accent-primary); outline: none; }
+#main select { border-color: var(--color-border); background-color: var(--color-surface-card); color: var(--color-text-primary); }
+#main svg.text-white { color: var(--color-text-inverse); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Tailwind-compatible component utilities (use with @apply or as classes)
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Primary button: solid accent, pill, hover scale + shadow */
+.btn-primary {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  padding: 14px 28px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base), transform var(--transition-fast), box-shadow var(--transition-base);
+}
+.btn-primary:hover {
+  background-color: var(--button-primary-bg-hover);
+  color: var(--button-primary-text);
+  transform: scale(1.03);
+  box-shadow: var(--shadow-button);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+@media (max-width: 767px) {
+  .btn-primary {
+    padding: 12px 22px;
+  }
+}
+
+/* Secondary button: outline/ghost */
+.btn-secondary {
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  padding: 14px 28px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--button-secondary-border);
+  cursor: pointer;
+  transition: background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+}
+.btn-secondary:hover {
+  background-color: var(--button-secondary-bg-hover);
+  border-color: var(--button-secondary-border-hover);
+  color: var(--button-secondary-text-hover);
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+@media (max-width: 767px) {
+  .btn-secondary {
+    padding: 12px 22px;
+  }
+}
+
+/* Card: surface + shadow + radius + animated */
+.card {
+  background-color: var(--color-surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-fast);
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-deep);
+  border-color: rgba(var(--color-accent-rgb), 0.35);
+}
+
+/* Animated card entry (stagger children with .card-animate and data-delay or .delay-* ) */
+.card-animate {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardEnter 0.5s ease-out forwards;
+}
+@keyframes cardEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.card-animate.delay-1 { animation-delay: 0.05s; }
+.card-animate.delay-2 { animation-delay: 0.1s; }
+.card-animate.delay-3 { animation-delay: 0.15s; }
+.card-animate.delay-4 { animation-delay: 0.2s; }
+.card-animate.delay-5 { animation-delay: 0.25s; }
+.card-animate.delay-6 { animation-delay: 0.3s; }
+
+/* Section entry animation (add .in-view via JS IntersectionObserver) */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+.section-reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}

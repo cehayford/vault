@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block head %}<title>My votes</title>{% endblock %}
+{% block content %}
+<div class="min-h-screen py-8">
+    <div class="max-w-container mx-auto px-container-x">
+        <h1 class="text-2xl font-display font-bold text-foreground tracking-tight border-b border-border pb-4 mb-6">My votes</h1>
+        <div class="card border border-border overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-secondary border-b border-border">
+                        <tr>
+                            <th class="text-left p-3 font-semibold text-foreground">Election</th>
+                            <th class="text-left p-3 font-semibold text-foreground">Ballot</th>
+                            <th class="text-left p-3 font-semibold text-foreground">Cast at</th>
+                            <th class="text-left p-3 font-semibold text-foreground">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-foreground">
+                        {% for vote in page_obj %}
+                        <tr class="border-t border-border">
+                            <td class="p-3">{{ vote.election.title }}</td>
+                            <td class="p-3">{{ vote.ballot.title }}</td>
+                            <td class="p-3 text-muted">{{ vote.cast_at|date:"Y-m-d H:i" }}</td>
+                            <td class="p-3 text-muted">{% if vote.votereceipt %}{{ vote.votereceipt.receipt_code }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="p-6 text-center text-muted">You have not cast any votes yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4 flex items-center justify-center gap-4 text-sm" aria-label="My votes pagination">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="text-accent font-medium hover:text-accent-hover">Previous</a>{% endif %}
+            <span class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="text-accent font-medium hover:text-accent-hover">Next</a>{% endif %}
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

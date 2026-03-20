@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block head %}
+    <title>Vote for {{ headline.title }}</title>
+{% endblock %}
+
+{% block content %}
+    <div class="min-h-screen py-6 md:py-8 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header Section -->
+            <div class="bg-white border-4 md:border-8 border-black p-6 md:p-8 mb-6 md:mb-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-black flex items-center justify-center transform rotate-45">
+                            <svg class="w-6 h-6 md:w-7 md:h-7 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="square" stroke-linejoin="miter" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4 md:ml-5">
+                        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2 uppercase tracking-tight font-mono border-l-4 md:border-l-8 border-black pl-3 md:pl-4">
+                            {{ headline.title }}
+                        </h1>
+                        <p class="text-base md:text-lg text-black font-mono uppercase tracking-wide pl-3 md:pl-4">
+                            {{ headline.subtitle }}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Instructions Box -->
+                <div class="mt-6 bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-black flex items-center justify-center mr-3 flex-shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="text-xs md:text-sm text-black font-mono uppercase tracking-wide">
+                            <span class="font-bold">HOW TO VOTE:</span> SELECT ONE NOMINEE FOR EACH POSITION BELOW, THEN CLICK THE VOTE BUTTON TO SUBMIT YOUR CHOICES.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Voting Form -->
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                <div class="bg-white border-4 md:border-8 border-black overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y-4 divide-black">
+                            <thead>
+                                <tr class="bg-black">
+                                    <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-white uppercase tracking-wider font-mono border-r-4 border-black">
+                                        POSITION
+                                    </th>
+                                    <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-white uppercase tracking-wider font-mono">
+                                        NOMINEES
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y-4 divide-black">
+                                {% for sub_category, nominees in grouped_nominees %}
+                                    <tr class="hover:bg-black hover:text-white transition-colors duration-150 group">
+                                        <td class="px-4 md:px-6 py-4 md:py-5 align-top bg-white border-r-4 border-black group-hover:bg-black">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 bg-black group-hover:bg-white mr-3"></div>
+                                                <span class="text-sm md:text-base font-bold text-black group-hover:text-white uppercase tracking-wide font-mono">
+                                                    {{ sub_category }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 md:px-6 py-4 md:py-5 group-hover:bg-black">
+                                            <div class="space-y-3">
+                                                {% for option in nominees %}
+                                                    <div class="flex items-center">
+                                                        <input type="radio" 
+                                                               id="option_{{ option.id }}" 
+                                                               name="option_{{ sub_category }}" 
+                                                               value="{{ option.id }}" 
+                                                               required
+                                                               class="w-4 h-4 md:w-5 md:h-5 border-4 border-black focus:ring-0 focus:ring-offset-0 text-black bg-white cursor-pointer">
+                                                        <label for="option_{{ option.id }}" 
+                                                               class="ml-3 text-sm md:text-base font-bold text-black group-hover:text-white cursor-pointer uppercase tracking-wide font-mono">
+                                                            {{ option.Name }}
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="flex flex-col items-center space-y-4 pt-4 pb-6 md:pb-8">
+                    <button type="submit" 
+                            class="inline-flex items-center justify-center px-10 md:px-12 py-4 md:py-5 bg-black text-white font-bold text-base md:text-lg uppercase tracking-widest border-4 border-black hover:bg-white hover:text-black transition-all duration-200 transform hover:translate-x-2 hover:translate-y-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                            <path stroke-linecap="square" stroke-linejoin="miter" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        SUBMIT YOUR VOTE
+                    </button>
+                    <p class="text-xs md:text-sm text-black font-mono uppercase tracking-wide border-4 border-black px-4 py-2 bg-white">
+                        MAKE SURE YOU'VE SELECTED A NOMINEE FOR EACH POSITION
+                    </p>
+                </div>
+            </form>
+            
+            <!-- Security Notice -->
+            <div class="bg-white border-4 border-black p-4 md:p-6 mt-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div class="flex items-start">
+                    <div class="w-6 h-6 bg-black flex items-center justify-center mr-3 flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="square" stroke-linejoin="miter" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <div class="text-xs md:text-sm text-black font-mono uppercase tracking-wide">
+                        <span class="font-bold">YOUR VOTE IS SECURE:</span> ALL VOTES ARE ENCRYPTED AND ANONYMOUS. ONCE SUBMITTED, YOUR SELECTIONS CANNOT BE CHANGED.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Brutalist Radio Button Styling */
+        input[type="radio"] {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            position: relative;
+        }
+        
+        input[type="radio"]:checked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            height: 50%;
+            background-color: black;
+        }
+        
+        input[type="radio"]:checked {
+            background-color: white;
+        }
+        
+        /* Group hover state for radio buttons */
+        tr.group:hover input[type="radio"] {
+            border-color: white;
+        }
+        
+        tr.group:hover input[type="radio"]:checked::before {
+            background-color: white;
+        }
+        
+        tr.group:hover input[type="radio"]:checked {
+            background-color: black;
+        }
+    </style>
+{% endblock %}

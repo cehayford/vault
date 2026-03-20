@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load voting_extras %}
+{% block head %}
+<title>Results — {{ election.brand_name|default:election.title }}</title>
+{% with election.primary_color|valid_hex_color as accent_color %}
+{% if accent_color %}
+<style type="text/css">
+    .election-results-accent { --election-color: {{ accent_color }}; }
+    .election-results-accent .results-heading { border-color: {{ accent_color }}; color: {{ accent_color }}; }
+</style>
+{% endif %}
+{% endwith %}
+{% endblock %}
+{% block content %}
+{% with election.primary_color|valid_hex_color as accent_color %}
+<div class="min-h-screen py-8 {% if accent_color %}election-results-accent{% endif %}">
+    <div class="max-w-container mx-auto px-container-x">
+        <h1 class="text-2xl font-display font-bold text-foreground tracking-tight border-b border-border pb-4 mb-6 results-heading">Results — {{ election.brand_name|default:election.title }}</h1>
+        <p class="text-muted text-sm mb-6">{% if turnout_percentage is not None %}Total turnout: {{ turnout_percentage }}%{% else %}Results pending.{% endif %}</p>
+        <div class="space-y-6">
+            {% for ballot in ballots %}
+            <div class="card p-6 border border-border">
+                <h2 class="font-display font-semibold text-foreground text-lg mb-2">{{ ballot.title }}</h2>
+                <a href="{% url 'voting:ballot_results' ballot.pk %}" class="text-accent font-medium text-sm hover:text-accent-hover">View ballot results</a>
+            </div>
+            {% empty %}
+            <p class="text-muted">No ballots.</p>
+            {% endfor %}
+        </div>
+        <p class="mt-6 flex flex-wrap gap-4">
+            {% if user.role == 'election_admin' or user.role == 'super_admin' or user == election.creator or user.role == 'org_admin' %}
+            <a href="{% url 'voting:export_election_results_csv' election.pk %}" class="text-accent font-medium text-sm hover:text-accent-hover">Export CSV</a>
+            <a href="{% url 'voting:export_election_results_pdf' election.pk %}" class="text-accent font-medium text-sm hover:text-accent-hover">Export PDF</a>
+            {% endif %}
+            <a href="{% url 'voting:election_detail' election.pk %}" class="text-accent font-medium text-sm hover:text-accent-hover">Back to election</a>
+        </p>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

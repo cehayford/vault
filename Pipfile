@@ -1,0 +1,43 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+whitenoise = "*"
+django = "*"
+pillow = "*"
+django-browser-reload = "*"
+django-cors-headers = "*"
+django-defender = "*"
+django-allauth = "*"
+pyjwt = "*"
+cryptography = "*"
+pyotp = "*"
+qrcode = "*"
+redis = "*"
+celery = "*"
+django-extensions = "*"
+django-debug-toolbar = "*"
+psycopg2-binary = "*"
+gunicorn = "*"
+python-decouple = "*"
+django-ratelimit = "*"
+django-axes = "*"
+django-storages = "*"
+boto3 = "*"
+reportlab = "*"
+bleach = "*"
+django-filter = "*"
+djangorestframework = "*"
+django-environ = "*"
+werkzeug = "*"
+pyopenssl = "*"
+django-recaptcha = "*"
+"requirements.py" = "*"
+twilio = "==8.11.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

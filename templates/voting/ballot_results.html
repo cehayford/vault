@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block head %}<title>Results — {{ ballot.title }}</title>{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-amber-50 px-4 py-8">
+    <div class="max-w-2xl mx-auto bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
+        <h1 class="text-xl font-mono font-bold uppercase tracking-widest text-amber-900 border-b-4 border-black pb-4 mb-6">{{ ballot.title }} — RESULTS</h1>
+        <p class="font-mono text-amber-900 mb-4">Total votes: {{ total_votes }}{% if is_proportional and total_seats %} · Seats to allocate: {{ total_seats }}{% endif %}</p>
+        <div class="space-y-4">
+            {% for r in results_list %}
+            <div class="{% if max_count and r.count == max_count and r.count %}ring-2 ring-green-500 ring-offset-2{% endif %}">
+                <div class="flex justify-between font-mono text-sm text-amber-900 mb-1">
+                    <span>{{ r.candidate.name }}{% if r.candidate.party %} ({{ r.candidate.party }}){% endif %}</span>
+                    <span>{{ r.count }}{% if total_votes %} ({{ r.pct }}%){% endif %}{% if is_proportional and total_seats and r.seats %} · {{ r.seats }} seat{{ r.seats|pluralize }}{% endif %}</span>
+                </div>
+                <div class="h-6 bg-amber-100 border-2 border-black">
+                    <div class="h-full bg-amber-900 transition-all" style="width: {{ r.pct }}%"></div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="font-mono text-amber-900">No candidates or no votes yet.</p>
+            {% endfor %}
+        </div>
+        <p class="mt-6"><a href="{% url 'voting:election_detail' ballot.election_id %}" class="font-mono text-amber-900 underline">Back to election</a></p>
+    </div>
+</div>
+{% endblock %}
