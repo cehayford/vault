@@ -1,4 +1,4 @@
 # Run collectstatic during image build so start command only runs migrate + gunicorn.
 # This reduces deploy/restart time (collectstatic no longer runs on every start).
 [phases.build]
-cmds = ["RUN mkdir -p /app/logs && python manage.py collectstatic --noinput"]
+cmds = ["mkdir -p /app/logs && python manage.py collectstatic --noinput"]
