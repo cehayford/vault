@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <title>Celery Health Monitor - Vault</title>
+    <style>
+        .health-card {
+            @apply card p-6 mb-4 border-l-4;
+        }
+        .health-healthy { @apply border-l-green-500 bg-green-50; }
+        .health-degraded { @apply border-l-yellow-500 bg-yellow-50; }
+        .health-error { @apply border-l-red-500 bg-red-50; }
+        .health-unknown { @apply border-l-gray-500 bg-gray-50; }
+        
+        .metric-grid {
+            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+        }
+        
+        .status-indicator {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+        .status-healthy { @apply bg-green-100 text-green-800; }
+        .status-degraded { @apply bg-yellow-100 text-yellow-800; }
+        .status-error { @apply bg-red-100 text-red-800; }
+        .status-unknown { @apply bg-gray-100 text-gray-800; }
+        
+        .progress-bar {
+            @apply w-full bg-gray-200 rounded-full h-2;
+        }
+        .progress-fill {
+            @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+        }
+        
+        .worker-card {
+            @apply card p-4 border border-border;
+        }
+        
+        .task-item {
+            @apply bg-secondary p-3 rounded border border-border mb-2;
+        }
+        
+        .queue-item {
+            @apply flex items-center justify-between p-3 bg-secondary rounded border border-border;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-foreground">Celery Health Monitor</h1>
+                    <p class="text-muted mt-1">Real-time monitoring of Celery workers and task performance</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="refreshData()" class="btn-secondary py-2 px-4 inline-flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                    <button onclick="clearCache()" class="btn-secondary py-2 px-4 inline-flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Clear Cache
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+            <div class="health-card health-error">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="alert-circle" class="w-6 h-6 text-red-500"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-800">Monitoring Error</h3>
+                        <p class="text-red-600">{{ error }}</p>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Overall Status -->
+            <div class="health-card health-{{ health_data.overall_status }}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center">
+                            {% if health_data.overall_status == 'healthy' %}
+                                <i data-lucide="check-circle" class="w-6 h-6 text-green-500"></i>
+                            {% elif health_data.overall_status == 'degraded' %}
+                                <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-500"></i>
+                            {% else %}
+                                <i data-lucide="x-circle" class="w-6 h-6 text-red-500"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-foreground">
+                                Overall Status: {{ health_data.overall_status|title }}
+                            </h2>
+                            <p class="text-muted text-sm">Last updated: {{ last_updated|date:"H:i:s" }}</p>
+                        </div>
+                    </div>
+                    <span class="status-indicator status-{{ health_data.overall_status }}">
+                        {{ health_data.overall_status|upper }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="metric-grid">
+                <!-- Workers Status -->
+                <div class="health-card health-{{ health_data.workers.status }}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="users" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">Workers</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Status:</span>
+                            <span class="status-indicator status-{{ health_data.workers.status }}">
+                                {{ health_data.workers.status|title }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Count:</span>
+                            <span class="font-medium">{{ health_data.workers.worker_count }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Processes:</span>
+                            <span class="font-medium">{{ health_data.workers.total_processes }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Tasks -->
+                <div class="health-card health-{{ health_data.active_tasks.status }}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">Active Tasks</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Status:</span>
+                            <span class="status-indicator status-{{ health_data.active_tasks.status }}">
+                                {{ health_data.active_tasks.status|title }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Active:</span>
+                            <span class="font-medium">{{ health_data.active_tasks.active_count }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queues -->
+                <div class="health-card health-{{ health_data.queues.status }}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="layers" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">Queues</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Status:</span>
+                            <span class="status-indicator status-{{ health_data.queues.status }}">
+                                {{ health_data.queues.status|title }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Pending:</span>
+                            <span class="font-medium">{{ health_data.queues.total_pending }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Metrics -->
+                <div class="health-card health-{{ health_data.system_metrics.status }}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="server" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">System</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">CPU:</span>
+                            <span class="font-medium">{{ health_data.system_metrics.system_cpu|floatformat:1 }}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Memory:</span>
+                            <span class="font-medium">{{ health_data.system_metrics.system_memory.percent_used|floatformat:1 }}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Processes:</span>
+                            <span class="font-medium">{{ health_data.system_metrics.process_count }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Execution Test -->
+                <div class="health-card health-{{ health_data.task_execution_test.status }}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="zap" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">Task Test</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Status:</span>
+                            <span class="status-indicator status-{{ health_data.task_execution_test.status }}">
+                                {{ health_data.task_execution_test.status|title }}
+                            </span>
+                        </div>
+                        {% if health_data.task_execution_test.execution_time %}
+                        <div class="flex justify-between">
+                            <span class="text-sm text-muted">Exec Time:</span>
+                            <span class="font-medium">{{ health_data.task_execution_test.execution_time|floatformat:2 }}s</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Memory Usage Bar -->
+                <div class="card p-4 border border-border">
+                    <div class="flex items-center gap-3 mb-3">
+                        <i data-lucide="hard-drive" class="w-5 h-5 text-accent"></i>
+                        <h3 class="font-semibold text-foreground">Memory Usage</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>System Memory</span>
+                                <span>{{ health_data.system_metrics.system_memory.percent_used|floatformat:1 }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ health_data.system_metrics.system_memory.percent_used }}%"></div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-muted">
+                            {{ health_data.system_metrics.system_memory.available_gb|floatformat:1 }} GB available of {{ health_data.system_metrics.system_memory.total_gb|floatformat:1 }} GB total
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Sections -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                <!-- Workers Detail -->
+                <div class="card border border-border">
+                    <div class="px-6 py-4 border-b border-border">
+                        <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-accent"></i>
+                            Worker Details
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        {% for worker_name, worker_data in health_data.workers.workers.items %}
+                        <div class="worker-card">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-medium text-foreground">{{ worker_name }}</h4>
+                                <span class="status-indicator status-{{ worker_data.status }}">
+                                    {{ worker_data.status }}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-muted">Total Tasks:</span>
+                                    <span class="font-medium ml-2">{{ worker_data.total_tasks }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-muted">Active Tasks:</span>
+                                    <span class="font-medium ml-2">{{ worker_data.active_tasks }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-muted">Registered:</span>
+                                    <span class="font-medium ml-2">{{ worker_data.registered_tasks }}</span>
+                                </div>
+                                {% if worker_data.concurrency %}
+                                <div>
+                                    <span class="text-muted">Concurrency:</span>
+                                    <span class="font-medium ml-2">{{ worker_data.concurrency }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Active Tasks Detail -->
+                <div class="card border border-border">
+                    <div class="px-6 py-4 border-b border-border">
+                        <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
+                            Active Tasks
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        {% if health_data.active_tasks.tasks %}
+                            <div class="space-y-3">
+                                {% for task in health_data.active_tasks.tasks %}
+                                <div class="task-item">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-medium text-foreground">{{ task.name }}</h4>
+                                        <span class="text-sm text-muted">{{ task.duration|floatformat:2 }}s</span>
+                                    </div>
+                                    <div class="text-xs text-muted">
+                                        Worker: {{ task.worker }} | ID: {{ task.id|slice:":8" }}...
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-8">No active tasks</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function refreshData() {
+    window.location.reload();
+}
+
+function clearCache() {
+    fetch('{% url "userauth:celery_clear_cache" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            refreshData();
+        } else {
+            alert('Error clearing cache: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error clearing cache');
+    });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    refreshData();
+}, 30000);
+
+// Initialize Lucide icons
+if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+}
+</script>
+{% endblock %}

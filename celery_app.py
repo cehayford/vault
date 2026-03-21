@@ -12,20 +12,33 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
-@app.task
-def send_email_notification(user_email, subject, message):
+@app.task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
+def send_email_notification(self, user_email, subject, message, html_message=None):
     from django.core.mail import send_mail
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
-        send_mail(
+        result = send_mail(
             subject,
             message,
-            settings.EMAIL_FROM_ADDRESS,
+            getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
             [user_email],
+            html_message=html_message,
             fail_silently=False,
         )
-        return True
+        logger.info(f'Email successfully sent to {user_email}')
+        return {'status': 'success', 'recipient': user_email}
     except Exception as e:
-        return False
+        logger.error(f'Failed to send email to {user_email}: {e}')
+        # Retry with exponential backoff
+        if self.request.retries < self.max_retries:
+            countdown = 60 * (2 ** self.request.retries)  # 60s, 120s, 240s
+            logger.info(f'Retrying email to {user_email} in {countdown} seconds (attempt {self.request.retries + 1})')
+            raise self.retry(countdown=countdown)
+        else:
+            logger.error(f'Failed to send email to {user_email} after {self.max_retries} attempts')
+            return {'status': 'failed', 'recipient': user_email, 'error': str(e)}
 
 @app.task
 def send_sms_notification(phone_number, message):

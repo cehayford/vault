@@ -187,21 +187,41 @@ def signup(request):
                 'token': token,
                 'domain': current_site.domain,
             })
+            
+            # Try to send via Celery for better reliability
             try:
-                send_mail(
+                from celery_app import send_email_notification
+                result = send_email_notification.delay(
+                    email,
                     subject,
                     message,
-                    getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
-                    [email],
-                    fail_silently=False,
+                    html_message=message
                 )
+                # Check if task was successful (for immediate feedback)
+                if result and hasattr(result, 'result'):
+                    task_result = result.result
+                    if task_result and task_result.get('status') == 'failed':
+                        # Log the failure but continue with signup
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f'Email task failed for {email}: {task_result.get("error")}')
             except Exception as e:
-                # Log email error but don't fail the signup
+                # Fallback to direct email sending if Celery is not available
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.warning(f'Failed to send verification email to {email}: {e}')
-                # In production with console backend, the email will be printed to logs
-                # so user can still get the verification code from logs if needed
+                logger.warning(f'Celery not available, falling back to direct email: {e}')
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
+                        [email],
+                        fail_silently=False,
+                    )
+                except Exception as email_error:
+                    logger.warning(f'Direct email also failed for {email}: {email_error}')
+                    # In production with console backend, email will be printed to logs
+                    # so user can still get verification code from logs if needed
             domain = get_current_site(request).domain
             ctx = {'domain': domain}
             if settings.DEBUG:
@@ -672,15 +692,26 @@ def resend_verification(request):
         'gen_code': verification.code,
         'domain': current_site.domain,
     })
-    send_mail(
-        'Verify Your Email Address',
-        strip_tags(message),
-        getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
-        [user.email],
-        html_message=message,
-        fail_silently=False,
-    )
-    messages.success(request, 'A new verification code has been sent to your email. Check your inbox and spam.')
+    try:
+        send_mail(
+            'Verify Your Email Address',
+            strip_tags(message),
+            getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
+            [user.email],
+            html_message=message,
+            fail_silently=False,
+        )
+    except Exception as e:
+        # Log email error but don't fail the process
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f'Failed to resend verification email to {user.email}: {e}')
+        # In production with console backend, email will be printed to logs
+        
+    messages.success(request, 'A new verification code has been sent. Check your email or use the code below.')
+    
+    # Show the verification code in the message for immediate access
+    messages.info(request, f'Your verification code is: {verification.code}')
     return redirect('userauth:email_verification')
 
 

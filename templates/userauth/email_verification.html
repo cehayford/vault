@@ -16,6 +16,35 @@
             </div>
 
             <div class="px-8 py-8">
+                <!-- Django Messages -->
+                {% if messages %}
+                    <div class="space-y-3 mb-6">
+                        {% for message in messages %}
+                            <div class="message-alert card px-4 py-3 border {% if message.tags %}{{ message.tags }}{% endif %}" role="alert">
+                                <div class="flex items-start gap-3">
+                                    {% if 'error' in message.tags %}
+                                        <i data-lucide="alert-circle" class="w-5 h-5 text-accent flex-shrink-0 mt-0.5"></i>
+                                    {% elif 'warning' in message.tags %}
+                                        <i data-lucide="alert-triangle" class="w-5 h-5 text-accent flex-shrink-0 mt-0.5"></i>
+                                    {% elif 'success' in message.tags %}
+                                        <i data-lucide="check-circle" class="w-5 h-5 text-accent flex-shrink-0 mt-0.5"></i>
+                                    {% else %}
+                                        <i data-lucide="info" class="w-5 h-5 text-accent flex-shrink-0 mt-0.5"></i>
+                                    {% endif %}
+                                    <div class="flex-1">
+                                        <p class="text-sm text-foreground">{{ message }}</p>
+                                        {% if 'info' in message.tags and 'verification code is:' in message %}
+                                            <div class="mt-2 p-2 bg-primary/10 border border-primary/30 rounded">
+                                                <code class="text-lg font-mono font-bold text-primary">{{ message|slice:'-6:' }}</code>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
                 <form method="post" class="space-y-6">
                     {% csrf_token %}
                     <div class="text-center space-y-2">

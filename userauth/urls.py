@@ -6,6 +6,10 @@ from .views import (
     about, help_center, contact, privacy_policy, terms_of_service, faq,
     password_reset, password_reset_done, password_reset_complete, reset_password_confirm,
 )
+from .celery_views import (
+    celery_health_api, celery_simple_health, celery_metrics_detail, 
+    celery_test_task, celery_clear_cache, CeleryHealthView
+)
 
 app_name = 'userauth'
 
@@ -32,4 +36,12 @@ urlpatterns = [
     path('password-reset/done/', password_reset_done, name='password_reset_done'),
     path('password-reset/<uidb64>/<token>/', reset_password_confirm, name='password_reset_confirm'),
     path('password-reset/complete/', password_reset_complete, name='password_reset_complete'),
+    
+    # Celery monitoring URLs
+    path('celery/health/', CeleryHealthView.as_view(), name='celery_health'),
+    path('celery/api/health/', celery_health_api, name='celery_health_api'),
+    path('celery/api/simple/', celery_simple_health, name='celery_simple_health'),
+    path('celery/api/metrics/', celery_metrics_detail, name='celery_metrics_detail'),
+    path('celery/api/test/', celery_test_task, name='celery_test_task'),
+    path('celery/api/clear-cache/', celery_clear_cache, name='celery_clear_cache'),
 ]
