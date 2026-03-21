@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block head %}<title>{{ candidate.name }}</title>{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-amber-50 px-4 py-8">
+    <div class="max-w-xl mx-auto bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
+        <h1 class="text-xl font-mono font-bold uppercase tracking-widest text-amber-900 border-b-4 border-black pb-4 mb-6">CANDIDATE</h1>
+        <div class="flex flex-col sm:flex-row gap-6">
+            {% if candidate.photo %}
+            <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" class="w-32 h-32 object-cover border-4 border-black flex-shrink-0">
+            {% endif %}
+            <div>
+                <h2 class="font-mono font-bold text-amber-900 text-lg">{{ candidate.name }}</h2>
+                {% if candidate.party %}<p class="font-mono text-sm text-amber-900">{{ candidate.party }}</p>{% endif %}
+                <p class="font-mono text-sm text-amber-900 mt-2">{{ candidate.description|default:"" }}</p>
+                <p class="font-mono text-sm text-amber-900 mt-2">Ballot: {{ candidate.ballot.title }}</p>
+                <p class="font-mono text-sm text-amber-900">Votes: {{ candidate.votes_count|default:0 }}</p>
+            </div>
+        </div>
+        <p class="mt-6"><a href="{% url 'voting:candidate_list' %}" class="font-mono text-amber-900 underline">Back to list</a></p>
+    </div>
+</div>
+{% endblock %}

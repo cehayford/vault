@@ -1,0 +1,21 @@
+.env
+*.env
+.env.local
+
+# Python cache and local database artifacts
+__pycache__/
+*.py[cod]
+db.sqlite3
+*.sqlite3
+
+# Local HTTPS dev server certs (run_https.bat)
+devserver.crt
+devserver.key
+
+# Logs containing sensitive data
+logs/
+*.log
+
+# Local generated assets
+local_media/
+local_cdn/

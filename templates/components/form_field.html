@@ -1,0 +1,198 @@
+{% load static %}
+<!-- Standardized Form Field Component -->
+<div class="field-wrapper animate-fade-in-up animate-stagger-{{ forloop.counter0|default:'1' }}">
+    <label for="{{ field.id_for_label }}" class="field-label">
+        {{ field.label }}
+        {% if field.field.required %}
+            <span class="field-required">*</span>
+        {% endif %}
+    </label>
+    
+    {% if field.field.widget.input_type == 'password' %}
+        <div class="password-field">
+            <input type="password"
+                   name="{{ field.name }}"
+                   id="{{ field.id_for_label }}"
+                   value="{{ field.value|default:'' }}"
+                   {% if field.field.required %}required{% endif %}
+                   autocomplete="{{ field.name }}"
+                   class="field-input field-animate"
+                   placeholder="{{ field.label }}">
+            <button type="button" 
+                    class="password-toggle" 
+                    aria-label="Show password" 
+                    data-password-toggle
+                    title="Show password">
+                <i data-lucide="eye" class="eye-on w-4 h-4"></i>
+                <i data-lucide="eye-off" class="eye-off w-4 h-4 hidden"></i>
+            </button>
+        </div>
+    {% elif field.field.widget.input_type == 'select' %}
+        <div class="select-field">
+            <select name="{{ field.name }}"
+                    id="{{ field.id_for_label }}"
+                    {% if field.field.required %}required{% endif %}
+                    class="field-input field-animate">
+                <option value="">Choose {{ field.label }}...</option>
+                {% for choice in field.field.choices %}
+                    <option value="{{ choice.0 }}" {% if field.value == choice.0 %}selected{% endif %}>
+                        {{ choice.1 }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    {% elif field.field.widget.input_type == 'textarea' %}
+        <textarea name="{{ field.name }}"
+                  id="{{ field.id_for_label }}"
+                  {% if field.field.required %}required{% endif %}
+                  class="field-input field-animate"
+                  placeholder="{{ field.label }}"
+                  rows="4">{{ field.value|default:'' }}</textarea>
+    {% else %}
+        <input type="{{ field.field.widget.input_type|default:'text' }}"
+               name="{{ field.name }}"
+               id="{{ field.id_for_label }}"
+               value="{{ field.value|default:'' }}"
+               {% if field.field.required %}required{% endif %}
+               autocomplete="{% if field.name == 'email' %}email{% else %}off{% endif %}"
+               class="field-input field-animate"
+               placeholder="{{ field.label }}">
+    {% endif %}
+    
+    {% if field.help_text %}
+        <p class="field-help">{{ field.help_text }}</p>
+    {% endif %}
+    
+    {% if field.errors %}
+        <div class="field-error animate-shake">
+            {% for error in field.errors %}
+                <p class="error-message">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    {{ error }}
+                </p>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+/* Field Component Styles */
+.field-wrapper {
+    margin-bottom: var(--space-4);
+}
+
+.field-label {
+    display: block;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+.field-required {
+    color: var(--color-accent-primary);
+    margin-left: var(--space-1);
+}
+
+.field-input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-card);
+    color: var(--color-text-primary);
+    transition: all var(--anim-duration-fast) var(--anim-ease-out);
+}
+
+.field-input:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.1);
+}
+
+.field-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.field-help {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    border-left: 2px solid var(--color-accent-primary);
+    padding-left: var(--space-2);
+}
+
+.field-error {
+    margin-top: var(--space-2);
+}
+
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-accent-primary);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.password-field {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: var(--space-2);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: var(--space-2);
+    color: var(--color-text-muted);
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    transition: all var(--anim-duration-fast) var(--anim-ease-out);
+}
+
+.password-toggle:hover {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-secondary);
+}
+
+.password-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.3);
+}
+
+.select-field {
+    position: relative;
+}
+
+.select-field::after {
+    content: '';
+    position: absolute;
+    right: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--color-text-muted);
+    pointer-events: none;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .field-input {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .error-message {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+</style>

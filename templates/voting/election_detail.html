@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static voting_extras %}
+
+{% block head %}
+    <title>{{ election.brand_name|default:election.title }} — Election details</title>
+    {% with election.primary_color|valid_hex_color as accent_color %}
+    {% if accent_color %}
+    <style type="text/css">
+        .election-accent { --election-color: {{ accent_color }}; }
+        .election-accent.bg-election { background-color: {{ accent_color }} !important; }
+        .election-accent.border-election { border-color: {{ accent_color }} !important; }
+        .election-accent.text-election { color: {{ accent_color }} !important; }
+    </style>
+    {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% block content %}
+{% with election.primary_color|valid_hex_color as accent_color %}
+<div class="min-h-screen {% if accent_color %}election-accent{% endif %}">
+    <!-- Election Header -->
+    <div class="bg-secondary border-b border-border" {% if accent_color %}style="border-color: {{ accent_color }};"{% endif %}>
+        <div class="max-w-container mx-auto px-container-x py-6">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-3">
+                        <a href="{% url 'voting:election_list' %}" class="text-muted hover:text-foreground transition-colors shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                        </a>
+                        <h1 class="text-2xl font-display font-bold text-foreground tracking-tight truncate">{{ election.brand_name|default:election.title }}</h1>
+                    </div>
+                    <p class="text-muted text-sm max-w-3xl">{{ election.description }}</p>
+                    <div class="flex items-center gap-4 mt-3 flex-wrap">
+                        <span class="text-muted text-sm flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ election.start_date|date:"F d, Y H:i" }} – {{ election.end_date|date:"F d, Y H:i" }}
+                        </span>
+                        <span class="px-2.5 py-1 text-xs font-semibold rounded-md {% if election.status == 'active' %}bg-accent/20 text-accent{% elif election.status == 'upcoming' %}bg-blue-500/20 text-blue-400{% else %}bg-muted/20 text-muted{% endif %}">
+                            {{ election.status|upper }}
+                        </span>
+                    </div>
+                </div>
+                {% if can_manage %}
+                    <div class="flex flex-wrap gap-2 shrink-0">
+                        <a href="{% url 'voting:edit_election' election.id %}" class="btn-secondary inline-flex items-center py-2 px-4 text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit
+                        </a>
+                        {% if election.status == 'draft' or user.role == 'super_admin' %}
+                            <form action="{% url 'voting:delete_election' election.id %}" method="post" class="inline" onsubmit="return confirm('Delete this election? This cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-secondary inline-flex items-center py-2 px-4 text-sm border-red-500/50 text-red-600 hover:bg-red-500/10">Delete</button>
+                            </form>
+                        {% endif %}
+                        {% if election.status == 'draft' %}
+                            <form action="{% url 'voting:election_status_change' election.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next_status" value="scheduled">
+                                <button type="submit" class="btn-primary py-2 px-4 text-sm">Set scheduled</button>
+                            </form>
+                        {% elif election.status == 'scheduled' %}
+                            <form action="{% url 'voting:election_status_change' election.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next_status" value="active">
+                                <button type="submit" class="btn-primary py-2 px-4 text-sm">Open (activate)</button>
+                            </form>
+                        {% elif election.status == 'active' %}
+                            <form action="{% url 'voting:election_status_change' election.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next_status" value="closed">
+                                <button type="submit" class="btn-primary py-2 px-4 text-sm">Close</button>
+                            </form>
+                        {% elif election.status == 'closed' %}
+                            <form action="{% url 'voting:election_status_change' election.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next_status" value="completed">
+                                <button type="submit" class="btn-primary py-2 px-4 text-sm">Mark completed</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-container mx-auto px-container-x py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Election Info -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Ballots -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-display font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Ballots
+                    </h2>
+                    {% if ballots %}
+                        <div class="space-y-4">
+                            {% for ballot in ballots %}
+                                <div class="border border-border rounded-lg p-4 hover:border-accent/40 transition-colors duration-fast">
+                                    <div class="flex items-center justify-between mb-2 gap-2">
+                                        <h3 class="font-semibold text-foreground text-sm">{{ ballot.title }}</h3>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                        {% if user_can_vote and election.status == 'active' %}
+                                            <span class="text-xs font-medium px-2 py-1 rounded-md {% if ballot.user_has_voted %}bg-accent/20 text-accent{% else %}bg-surface-card text-muted border border-border{% endif %}">
+                                                {% if ballot.user_has_voted %}Voted{% else %}Pending{% endif %}
+                                            </span>
+                                        {% endif %}
+                                        {% if can_manage and election.status == 'draft' %}
+                                            <form action="{% url 'voting:delete_ballot' ballot.id %}" method="post" class="inline" onsubmit="return confirm('Remove this ballot?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="text-xs text-muted hover:text-red-600 transition-colors">Remove</button>
+                                            </form>
+                                        {% endif %}
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-muted mb-4">{{ ballot.description }}</p>
+                                    {% if ballot.user_has_voted %}
+                                        <div class="rounded-md border border-accent/30 bg-accent/10 p-3">
+                                            <p class="text-sm text-foreground flex items-center gap-2">
+                                                <svg class="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                You have voted in this ballot
+                                            </p>
+                                        </div>
+                                    {% elif election.status == 'active' and user_can_vote %}
+                                        <a href="{% url 'voting:vote_ballot' ballot.id %}" class="btn-primary inline-flex items-center py-2 px-4 text-sm">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Vote now
+                                        </a>
+                                    {% elif election.status != 'active' %}
+                                        <div class="rounded-md border border-border bg-surface-card/50 p-3">
+                                            <p class="text-sm text-muted">
+                                                Voting is {% if election.status == 'upcoming' %}not yet open{% else %}closed{% endif %}
+                                            </p>
+                                        </div>
+                                    {% elif not user_can_vote %}
+                                        <div class="rounded-md border border-accent/30 bg-secondary p-3">
+                                            <p class="text-sm text-foreground">
+                                                {% if user_is_creator %}The election creator cannot vote in their own election.{% else %}You are not eligible to vote in this election.{% endif %}
+                                            </p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <p class="text-muted text-sm">No ballots available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Candidates (if applicable) -->
+                {% if election.voting_type == 'single_choice' or election.voting_type == 'multiple_choice' %}
+                    <div class="card p-6">
+                        <h2 class="text-lg font-display font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Candidates
+                        </h2>
+                        {% if candidates %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {% for candidate in candidates %}
+                                    <div class="border border-border rounded-lg p-4 hover:border-accent/40 transition-colors duration-fast">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div class="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center shrink-0">
+                                                <span class="text-accent font-bold text-sm">{{ candidate.name|slice:":2"|upper }}</span>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <h3 class="font-semibold text-foreground text-sm">{{ candidate.name }}</h3>
+                                                <p class="text-xs text-muted">{{ candidate.position|default:"Candidate" }}</p>
+                                            </div>
+                                        </div>
+                                        <p class="text-sm text-muted">{{ candidate.statement|truncatewords:20 }}</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-6">
+                                <p class="text-muted text-sm">No candidates yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <div class="card p-6">
+                    <h2 class="text-lg font-display font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Statistics
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-muted">Total voters</span>
+                            <span class="font-semibold text-foreground">{{ total_voters|default:0 }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-muted">Votes cast</span>
+                            <span class="font-semibold text-foreground">{{ votes_cast|default:0 }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-muted">Turnout</span>
+                            <span class="font-semibold text-foreground">{{ turnout_percentage|default:0 }}%</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-muted">Ballots</span>
+                            <span class="font-semibold text-foreground">{{ ballots|length }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h2 class="text-lg font-display font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Timeline
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3">
+                            <div class="w-2 h-2 bg-accent rounded-full mt-1.5 shrink-0"></div>
+                            <div>
+                                <p class="text-xs font-semibold text-muted uppercase tracking-wide">Created</p>
+                                <p class="text-sm text-foreground">{{ election.created_at|date:"M d, Y H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 {% if election.status == 'upcoming' %}bg-muted{% else %}bg-accent{% endif %}"></div>
+                            <div>
+                                <p class="text-xs font-semibold text-muted uppercase tracking-wide">Starts</p>
+                                <p class="text-sm text-foreground">{{ election.start_date|date:"M d, Y H:i" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 {% if election.status == 'completed' %}bg-accent{% else %}bg-muted{% endif %}"></div>
+                            <div>
+                                <p class="text-xs font-semibold text-muted uppercase tracking-wide">Ends</p>
+                                <p class="text-sm text-foreground">{{ election.end_date|date:"M d, Y H:i" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if can_manage %}
+                    <div class="card p-6">
+                        <h2 class="text-lg font-display font-bold text-foreground tracking-tight mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Actions
+                        </h2>
+                        <div class="space-y-2">
+                            <a href="{% url 'voting:add_ballot' election.id %}" class="block w-full btn-primary text-center py-2.5 text-sm">Add ballot</a>
+                            <a href="{% url 'voting:shareable_link' election.pk %}" class="block w-full btn-secondary text-center py-2.5 text-sm">Share link</a>
+                            <a href="{% url 'voting:invite_voters' election.pk %}" class="block w-full btn-secondary text-center py-2.5 text-sm">Invite voters</a>
+                            <a href="{% url 'voting:create_candidate' %}" class="block w-full btn-secondary text-center py-2.5 text-sm">Add candidate</a>
+                            <a href="{% url 'voting:candidate_list' %}?election_id={{ election.id }}" class="block w-full btn-secondary text-center py-2.5 text-sm">View candidates (this election)</a>
+                            <a href="{% url 'voting:election_results' election.id %}" class="block w-full btn-secondary text-center py-2.5 text-sm">View results</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

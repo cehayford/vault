@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block head %}
+    <title>{% if vote_locked %}Already Voted{% else %}Vote Successfully Submitted{% endif %}</title>
+{% endblock %}
+
+{% block content %}
+    <div class="min-h-screen flex items-center justify-center py-8 md:py-12 px-4 sm:px-6 lg:px-8 bg-white">
+        <div class="max-w-md w-full">
+            {% if vote_locked %}
+                <!-- Already Voted State -->
+                <div class="bg-white border-4 md:border-8 border-black p-6 md:p-8 text-center shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] md:shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+                    <!-- Icon -->
+                    <div class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-black mb-6 transform rotate-45">
+                        <svg class="w-8 h-8 md:w-10 md:h-10 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                            <path stroke-linecap="square" stroke-linejoin="miter" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <div class="bg-black px-4 md:px-6 py-2 md:py-3 mb-4 inline-block border-4 border-black">
+                        <h1 class="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight font-mono">ALREADY VOTED</h1>
+                    </div>
+                    
+                    <p class="text-base md:text-lg text-black mb-8 font-mono uppercase tracking-wide border-l-4 border-black pl-4 text-left inline-block">
+                        YOU HAVE ALREADY CAST YOUR VOTE FOR THIS ELECTION.
+                    </p>
+                    
+                    <!-- Info Box -->
+                    <div class="bg-white border-4 border-black p-4 mb-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <div class="flex items-start text-xs md:text-sm text-black">
+                            <div class="w-6 h-6 bg-black flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="square" stroke-linejoin="miter" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="text-left font-mono uppercase tracking-wide">
+                                <p class="font-bold mb-2">ONE VOTE PER PERSON</p>
+                                <p class="text-black">TO ENSURE FAIRNESS, EACH PERSON CAN ONLY VOTE ONCE PER ELECTION.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-3 md:space-y-4">
+                        <a href="{% url 'nominee:analyze_votes' headline.id %}" 
+                           class="w-full inline-flex items-center justify-center px-6 py-4 bg-black text-white font-bold uppercase tracking-wider border-4 border-black hover:bg-white hover:text-black transition-all duration-200 transform hover:translate-x-2 hover:translate-y-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none text-sm md:text-base">
+                            VIEW VOTING RESULTS
+                        </a>
+                        <a href="{% url 'userauth:home' %}" 
+                           class="w-full inline-flex items-center justify-center px-6 py-4 bg-white text-black font-bold uppercase tracking-wider border-4 border-black hover:bg-black hover:text-white transition-all duration-200 transform hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none text-sm md:text-base">
+                            RETURN TO HOME
+                        </a>
+                    </div>
+
+                    <!-- Footer Message -->
+                    <div class="mt-8 pt-6 border-t-4 border-black">
+                        <p class="text-xs md:text-sm text-black mb-2 font-bold uppercase tracking-wide font-mono">THANK YOU FOR PARTICIPATING!</p>
+                        <p class="text-xs text-black font-mono uppercase tracking-wide">
+                            PLEASE COME BACK FOR THE NEXT VOTING PERIOD TO CAST YOUR VOTE AGAIN.
+                        </p>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Success State -->
+                <div class="bg-white border-4 md:border-8 border-black p-6 md:p-8 text-center shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] md:shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+                    <!-- Success Icon -->
+                    <div class="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-black mb-6 animate-pulse-scale">
+                        <svg class="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4">
+                            <path stroke-linecap="square" stroke-linejoin="miter" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <div class="bg-black px-4 md:px-6 py-2 md:py-3 mb-4 inline-block border-4 border-black">
+                        <h1 class="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight font-mono">THANK YOU!</h1>
+                    </div>
+                    
+                    <p class="text-base md:text-lg text-black mb-8 font-mono uppercase tracking-wide border-l-4 border-black pl-4 text-left inline-block">
+                        YOUR VOTE HAS BEEN SUCCESSFULLY RECORDED.
+                    </p>
+                    
+                    <!-- Security Notice -->
+                    <div class="bg-white border-4 border-black p-4 mb-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <div class="flex items-center justify-center text-xs md:text-sm text-black font-mono uppercase tracking-wide">
+                            <div class="w-6 h-6 bg-black flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="square" stroke-linejoin="miter" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <span class="font-bold">YOUR VOTE IS SECURE AND ANONYMOUS</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <div class="space-y-3 md:space-y-4">
+                        <a href="{% url 'nominee:analyze_votes' headline.id %}" 
+                           class="w-full inline-flex items-center justify-center px-6 py-4 bg-black text-white font-bold uppercase tracking-wider border-4 border-black hover:bg-white hover:text-black transition-all duration-200 transform hover:translate-x-2 hover:translate-y-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none text-sm md:text-base">
+                            ANALYZE VOTING DATA
+                        </a>
+                    </div>
+                    
+                    <!-- Footer Message -->
+                    <div class="mt-8 pt-6 border-t-4 border-black">
+                        <p class="text-xs text-black font-mono uppercase tracking-wide">
+                            YOUR VOTE HAS BEEN ENCRYPTED AND STORED SECURELY. RESULTS WILL BE AVAILABLE ONCE THE VOTING PERIOD ENDS.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Timestamp -->
+                <div class="mt-6 text-center">
+                    <div class="inline-flex items-center bg-white border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-xs md:text-sm text-black font-bold uppercase tracking-wide font-mono">
+                            VOTE RECORDED AT {{ now|date:"g:i A" }}
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        @keyframes pulseScale {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        .animate-pulse-scale {
+            animation: pulseScale 2s ease-in-out infinite;
+        }
+    </style>
+{% endblock %}
