@@ -48,6 +48,37 @@
   }
 }
 
+/* Message System Animations */
+@keyframes messageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes messageExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+.message-enter {
+  animation: messageEnter 300ms var(--anim-ease-spring) forwards;
+}
+
+.message-exit {
+  animation: messageExit 300ms var(--anim-ease-out) forwards;
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;

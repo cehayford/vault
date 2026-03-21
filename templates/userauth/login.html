@@ -115,35 +115,14 @@
 </div>
 
 <style>
-    @keyframes fadeOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-10px); }
+    .field-error {
+        animation: messageEnter 300ms var(--anim-ease-spring) forwards;
     }
-    .animate-fade-out { animation: fadeOut 0.5s ease-out forwards; }
 </style>
 
 <script>
-    function dismissError() {
-        const errorAlert = document.getElementById('errorAlert');
-        if (errorAlert) {
-            errorAlert.classList.add('animate-fade-out');
-            setTimeout(() => errorAlert.remove(), 3600);
-        }
-    }
     document.addEventListener('DOMContentLoaded', function() {
-        const errorAlert = document.getElementById('errorAlert');
-        if (errorAlert) {
-            setTimeout(function() {
-                errorAlert.classList.add('animate-fade-out');
-                setTimeout(function() { errorAlert.remove(); }, 3600);
-            }, 0);
-        }
-        document.querySelectorAll('.field-error').forEach(function(el) {
-            setTimeout(function() {
-                el.classList.add('animate-fade-out');
-                setTimeout(function() { el.remove(); }, 3600);
-            }, 0);
-        });
+        // Password toggle functionality
         document.querySelectorAll('[data-password-toggle]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var wrap = this.closest('.relative');
