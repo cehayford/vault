@@ -187,13 +187,18 @@ def signup(request):
                 'token': token,
                 'domain': current_site.domain,
             })
-            send_mail(
-                subject,
-                message,
-                getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
-                [email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
+                    [email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logging.getLogger(__name__).warning(
+                    'Signup verification email failed for %s: %s', email, e
+                )
             domain = get_current_site(request).domain
             ctx = {'domain': domain}
             if settings.DEBUG:
@@ -664,14 +669,19 @@ def resend_verification(request):
         'gen_code': verification.code,
         'domain': current_site.domain,
     })
-    send_mail(
-        'Verify Your Email Address',
-        strip_tags(message),
-        getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
-        [user.email],
-        html_message=message,
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            'Verify Your Email Address',
+            strip_tags(message),
+            getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
+            [user.email],
+            html_message=message,
+            fail_silently=False,
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            'Resend verification email failed for %s: %s', user.email, e
+        )
     messages.success(request, 'A new verification code has been sent to your email. Check your inbox and spam.')
     return redirect('userauth:email_verification')
 
