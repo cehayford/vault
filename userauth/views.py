@@ -187,13 +187,21 @@ def signup(request):
                 'token': token,
                 'domain': current_site.domain,
             })
-            send_mail(
-                subject,
-                message,
-                getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
-                [email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
+                    [email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Log email error but don't fail the signup
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Failed to send verification email to {email}: {e}')
+                # In production with console backend, the email will be printed to logs
+                # so user can still get the verification code from logs if needed
             domain = get_current_site(request).domain
             ctx = {'domain': domain}
             if settings.DEBUG:

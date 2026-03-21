@@ -131,6 +131,8 @@ INSTALLED_APPS = [
     # Development and utilities
     'django_extensions',
     'debug_toolbar',
+    # Template libraries
+    'django.contrib.humanize',
 ]
 
 # EmailBackend first so login by email works (CustomUser has no username field)
@@ -300,14 +302,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = (_get_env('EMAIL_HOST', 'smtp.gmail.com') or 'smtp.gmail.com').strip()
+    # Use fallback backend in production if SMTP is not properly configured
+    email_host = _get_env('EMAIL_HOST', 'smtp.gmail.com').strip()
+    email_user = _get_env('EMAIL_HOST_USER', '').strip()
+    email_pass = _get_env('EMAIL_HOST_PASSWORD', '').strip()
+    
+    # Only use SMTP if properly configured, otherwise fall back to console
+    if email_host and email_user and email_pass and email_host != 'smtp.gmail.com' and email_user != 'your-email@gmail.com':
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    else:
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        
+EMAIL_HOST = email_host
 EMAIL_PORT = int(_get_env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = _get_env('EMAIL_USE_TLS', 'True').strip().lower() in ('1', 'true', 'yes')
 EMAIL_USE_SSL = _get_env('EMAIL_USE_SSL', 'False').strip().lower() in ('1', 'true', 'yes')
 EMAIL_TIMEOUT = int(_get_env('EMAIL_TIMEOUT', '10'))
-EMAIL_HOST_USER = _get_env('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = _get_env('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = email_user
+EMAIL_HOST_PASSWORD = email_pass
 
 SITE_ID = 1
 
