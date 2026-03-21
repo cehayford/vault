@@ -578,7 +578,7 @@ def _vote_ballot_impl(request, pk):
                         'response': token,
                         'remoteip': ip,
                     },
-                    timeout=5,
+                    timeout=15,
                 )
                 if not r.json().get('success'):
                     SecurityLog.objects.create(
@@ -601,7 +601,7 @@ def _vote_ballot_impl(request, pk):
                         'response': token,
                         'remoteip': ip,
                     },
-                    timeout=5,
+                    timeout=15,
                 )
                 result = r.json()
                 if not result.get('success'):

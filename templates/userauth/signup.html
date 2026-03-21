@@ -128,7 +128,7 @@
         from { opacity: 1; transform: translateY(0); }
         to { opacity: 0; transform: translateY(-10px); }
     }
-    .animate-fade-out { animation: fadeOut 0.3s ease-out forwards; }
+    .animate-fade-out { animation: fadeOut 0.5s ease-out forwards; }
 </style>
 
 <script>
@@ -144,13 +144,13 @@
         if (errorAlert) {
             setTimeout(function() {
                 errorAlert.classList.add('animate-fade-out');
-                setTimeout(function() { errorAlert.remove(); }, 300);
+                setTimeout(function() { errorAlert.remove(); }, 3600);
             }, 0);
         }
         document.querySelectorAll('.field-error').forEach(function(el) {
             setTimeout(function() {
                 el.classList.add('animate-fade-out');
-                setTimeout(function() { el.remove(); }, 300);
+                setTimeout(function() { el.remove(); }, 3600);
             }, 0);
         });
         document.querySelectorAll('[data-password-toggle]').forEach(function(btn) {
