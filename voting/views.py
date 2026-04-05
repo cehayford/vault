@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
 from django.db import IntegrityError
-from django.db.models import Max
+from django.db.models import Max, Q
 from userauth.decorators import require_role, require_org_membership, require_not_voter
 from .models import (
     Election, Ballot, Candidate, Vote, VoteReceipt,
@@ -21,21 +21,15 @@ import uuid
 from userauth.models import SecurityLog
 from collections import Counter
 from itertools import groupby
-from reportlab.lib.pagesizes import letter
-from .models import EligibleVoter
 from .tasks import send_voter_invite_notification
 import csv
 import io
-from .models import VoteChainEntry
-from .models import VoteReceipt, VoteChainEntry
 import logging
 import base64
 from io import BytesIO
 import qrcode
 from .tasks import send_share_link_to_recipients
-from django.db.models import Max
 from django.contrib.auth import get_user_model
-from userauth.models import SecurityLog
 from django.core.paginator import Paginator
 
 
@@ -90,17 +84,66 @@ def status_view(request):
 
 
 def _elections_for_user(request):
-    """Elections visible to current user: super_admin sees all; org_admin sees their orgs'; others tenant or null."""
-    from django.db.models import Q
+    """Elections visible to current user with role-aware privacy scoping."""
     qs = Election.objects.select_related('creator', 'tenant', 'organisation').order_by('-created_at')
-    role = getattr(request.user, 'role', None)
+    user = request.user
+    if not getattr(user, 'is_authenticated', False):
+        return qs.none()
+    role = getattr(user, 'role', None)
     if role == 'super_admin':
         return qs
     if role == 'org_admin':
-        org_ids = request.user.org_memberships.filter(is_active=True).values_list('organisation_id', flat=True)
-        return qs.filter(Q(organisation_id__in=org_ids) | Q(creator=request.user))
-    user_tenant = getattr(request.user, 'tenant', None)
-    return qs.filter(Q(tenant=user_tenant) | Q(tenant__isnull=True))
+        org_ids = user.org_memberships.filter(is_active=True).values_list('organisation_id', flat=True)
+        return qs.filter(Q(organisation_id__in=org_ids) | Q(creator=user)).distinct()
+    if role == 'election_admin':
+        # Prevent cross-creator visibility among election admins.
+        return qs.filter(creator=user)
+    user_tenant = getattr(user, 'tenant', None)
+    tenant_scoped = qs.filter(Q(tenant=user_tenant) | Q(tenant__isnull=True))
+    if role in ('auditor', 'monitor'):
+        return tenant_scoped
+    # Voter/default scope: only publicly viewable election lifecycle states.
+    return tenant_scoped.filter(
+        status__in=('active', 'closed', 'completed')
+    ).filter(
+        Q(require_voter_registration=False) | Q(eligible_voters__email__iexact=user.email)
+    ).distinct()
+
+
+def _manageable_elections_for_user(user):
+    """Elections the current user can manage (stricter than general visibility)."""
+    if not getattr(user, 'is_authenticated', False):
+        return Election.objects.none()
+    role = getattr(user, 'role', None)
+    qs = Election.objects.all()
+    if role == 'super_admin':
+        return qs
+    if role == 'org_admin':
+        org_ids = user.org_memberships.filter(is_active=True).values_list('organisation_id', flat=True)
+        return qs.filter(Q(creator=user) | Q(organisation_id__in=org_ids)).distinct()
+    return qs.filter(creator=user)
+
+
+def _user_can_access_election(request, election):
+    """True if the current user can access election details."""
+    if not getattr(request.user, 'is_authenticated', False):
+        return False
+    if can_manage_election(election, request.user):
+        return True
+    return _elections_for_user(request).filter(pk=election.pk).exists()
+
+
+def _user_can_view_results(request, election):
+    """Results visibility policy: managers always; others only after closure/publication."""
+    if not _user_can_access_election(request, election):
+        return False
+    if can_manage_election(election, request.user):
+        return True
+    if election.status not in ('closed', 'completed'):
+        return False
+    if election.results_publish_date and timezone.now() < election.results_publish_date:
+        return False
+    return True
 
 
 @login_required
@@ -218,6 +261,9 @@ def election_detail(request, pk):
         ),
         pk=pk,
     )
+    if not _user_can_access_election(request, election):
+        messages.error(request, 'Access denied.')
+        return redirect('voting:dashboard')
     # Auto-close: if end_date has passed and still marked active, set to closed so "ended" is consistent
     if election.status == 'active' and election.has_ended():
         election.status = 'closed'
@@ -718,6 +764,9 @@ def ballot_results(request, pk):
     """Display ballot results from encrypted votes. For proportional elections, optionally show seat allocation."""
     ballot = get_object_or_404(Ballot, pk=pk)
     election = ballot.election
+    if not _user_can_view_results(request, election):
+        messages.error(request, 'Access denied.')
+        return redirect('voting:dashboard')
     votes = Vote.objects.filter(ballot=ballot)
     counter = Counter()
     for vote in votes:
@@ -764,6 +813,9 @@ def ballot_results(request, pk):
 def election_results(request, pk):
     """Display election results"""
     election = get_object_or_404(Election, pk=pk)
+    if not _user_can_view_results(request, election):
+        messages.error(request, 'Access denied.')
+        return redirect('voting:dashboard')
     ballots = election.ballots.all()
     total_votes = Vote.objects.filter(election=election).count()
     total_voters = Vote.objects.filter(election=election).values('voter').distinct().count()
@@ -943,6 +995,13 @@ def user_list(request):
         return redirect('voting:dashboard')
     User = get_user_model()
     qs = _users_queryset_for_request(request)
+    search = request.GET.get('search', '').strip()
+    if search:
+        qs = qs.filter(
+            Q(email__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search)
+        )
     role_filter = request.GET.get('role', '').strip()
     if role_filter:
         qs = qs.filter(role=role_filter)
@@ -951,7 +1010,11 @@ def user_list(request):
         qs = qs.filter(is_verified=True)
     elif verified_filter == '0':
         qs = qs.filter(is_verified=False)
-    paginator = Paginator(qs, 20)
+    try:
+        per_page = max(10, min(100, int(request.GET.get('per_page') or 20)))
+    except (TypeError, ValueError):
+        per_page = 20
+    paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(request.GET.get('page'))
     get_copy = request.GET.copy()
     get_copy.pop('page', None)
@@ -962,6 +1025,8 @@ def user_list(request):
         'pagination_query': pagination_query,
         'can_assign_roles': can_assign_roles,
         'role_choices': User.ROLE_CHOICES,
+        'search': search,
+        'per_page': per_page,
     })
 
 
@@ -1062,9 +1127,13 @@ def my_votes(request):
 
 
 @login_required
+@require_not_voter
 def candidate_list(request):
     """List candidates with pagination; optionally scoped by ballot_id and/or election_id (GET params)."""
-    qs = Candidate.objects.select_related('ballot', 'ballot__election').order_by(
+    managed_elections = _manageable_elections_for_user(request.user)
+    qs = Candidate.objects.select_related('ballot', 'ballot__election').filter(
+        ballot__election__in=managed_elections
+    ).order_by(
         'ballot__election__title', 'ballot__order', 'ballot__title', 'order', 'name'
     )
     ballot_id = request.GET.get('ballot_id', '').strip()
@@ -1073,15 +1142,42 @@ def candidate_list(request):
     ballot = None
     if ballot_id:
         try:
-            ballot = get_object_or_404(Ballot, pk=ballot_id)
-            qs = qs.filter(ballot=ballot)
-            election = ballot.election
+            ballot_uuid = uuid.UUID(ballot_id)
+            ballot = Ballot.objects.select_related('election').filter(
+                pk=ballot_uuid,
+                election__in=managed_elections,
+            ).first()
+            if ballot:
+                qs = qs.filter(ballot=ballot)
+                election = ballot.election
+            else:
+                qs = qs.none()
         except (ValueError, TypeError):
             qs = qs.none()
     if election_id:
-        qs = qs.filter(ballot__election_id=election_id)
-        if election is None and qs.exists():
-            election = qs.first().ballot.election
+        try:
+            election_uuid = uuid.UUID(election_id)
+            allowed_election = managed_elections.filter(pk=election_uuid).first()
+            if allowed_election:
+                qs = qs.filter(ballot__election=allowed_election)
+                election = allowed_election
+            else:
+                qs = qs.none()
+        except (ValueError, TypeError):
+            qs = qs.none()
+    search = request.GET.get('search', '').strip()
+    selected_party = request.GET.get('party', '').strip()
+    available_parties = list(
+        qs.exclude(party__isnull=True).exclude(party='').order_by('party').values_list('party', flat=True).distinct()
+    )
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search) |
+            Q(description__icontains=search) |
+            Q(party__icontains=search)
+        )
+    if selected_party:
+        qs = qs.filter(party__iexact=selected_party)
     try:
         per_page = max(10, min(100, int(request.GET.get('per_page') or 25)))
     except (TypeError, ValueError):
@@ -1099,14 +1195,20 @@ def candidate_list(request):
         'ballot': ballot,
         'can_manage_candidates': can_manage_candidates,
         'pagination_query': pagination_query,
+        'search': search,
+        'selected_party': selected_party,
+        'available_parties': available_parties,
+        'per_page': per_page,
     })
 
 
 def _user_can_manage_candidates(user):
     """True if user can manage at least one election (super_admin, election_admin, org_admin, or creator)."""
-    if user.role in ('super_admin', 'election_admin', 'org_admin'):
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if getattr(user, 'role', None) == 'super_admin':
         return True
-    return Election.objects.filter(creator=user).exists()
+    return _manageable_elections_for_user(user).exists()
 
 
 @login_required
@@ -1116,8 +1218,13 @@ def create_candidate(request):
     if not _user_can_manage_candidates(request.user):
         messages.error(request, 'You do not have permission to create candidates.')
         return redirect('voting:dashboard')
+    managed_elections = _manageable_elections_for_user(request.user)
+    allowed_ballots = Ballot.objects.select_related('election').filter(
+        election__in=managed_elections
+    ).order_by('election__title', 'order', 'title')
     if request.method == 'POST':
         form = CandidateForm(request.POST, request.FILES)
+        form.fields['ballot'].queryset = allowed_ballots
         if form.is_valid():
             ballot = form.cleaned_data.get('ballot')
             if ballot:
@@ -1137,13 +1244,20 @@ def create_candidate(request):
             return redirect('voting:candidate_detail', pk=candidate.pk)
     else:
         form = CandidateForm()
+        form.fields['ballot'].queryset = allowed_ballots
     return render(request, 'voting/create_candidate.html', {'form': form})
 
 
 @login_required
+@require_not_voter
 def candidate_detail(request, pk):
     """Display candidate details"""
-    candidate = get_object_or_404(Candidate, pk=pk)
+    candidate = get_object_or_404(
+        Candidate.objects.select_related('ballot', 'ballot__election').filter(
+            ballot__election__in=_manageable_elections_for_user(request.user)
+        ),
+        pk=pk,
+    )
     return render(request, 'voting/candidate_detail.html', {'candidate': candidate})
 
 

@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from decouple import config
 
@@ -35,6 +36,7 @@ except ImportError:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _get_env('DEBUG', 'True').strip().lower() in ('1', 'true', 'yes')
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == 'test'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = _get_env('SECRET_KEY')
 _DEFAULT_INSECURE_KEY = 'django-insecure-+tnx+g%-6v$by&e($di_a%t!7+8+nc2i7s1^d5%b&@c47kw06('
@@ -59,6 +61,12 @@ else:
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
 
+# Never force HTTPS redirects in test runs; Django test client uses HTTP by default.
+if RUNNING_TESTS:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
@@ -80,6 +88,12 @@ else:
 
 # Silence checks when using LocMemCache (no Redis); use Redis in prod for ratelimit
 SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
+
+# The duplicate HTTPS block above can re-enable redirects; enforce test-safe values last.
+if RUNNING_TESTS:
+    SECURE_SSL_REDIRECT = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
 
 ALLOWED_HOSTS = [
     'localhost', '127.0.0.1',
@@ -142,6 +156,22 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 AUTH_USER_MODEL = 'userauth.CustomUser'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -284,7 +314,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'local_cdn')
 os.makedirs(STATIC_ROOT, exist_ok=True)
@@ -298,26 +328,49 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'local_media')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Additional settings — use console backend in DEBUG so signup works without SMTP
-if DEBUG:
+# Email settings: prefer explicit backend, otherwise SMTP when credentials are configured.
+email_host = (_get_env('EMAIL_HOST', '') or '').strip() or 'smtp.gmail.com'
+email_user = (
+    (_get_env('EMAIL_HOST_USER', '') or '').strip()
+    or (_get_env('EMAIL_USER', '') or '').strip()
+    or (_get_env('EMAIL_FROM_ADDRESS', '') or '').strip()
+)
+email_pass = (_get_env('EMAIL_HOST_PASSWORD', '') or '').strip()
+try:
+    email_port = int((_get_env('EMAIL_PORT', '587') or '').strip() or '587')
+except ValueError:
+    email_port = 587
+email_use_tls = _get_env('EMAIL_USE_TLS', 'True').strip().lower() in ('1', 'true', 'yes')
+email_use_ssl = _get_env('EMAIL_USE_SSL', 'False').strip().lower() in ('1', 'true', 'yes')
+try:
+    email_timeout = int((_get_env('EMAIL_TIMEOUT', '10') or '').strip() or '10')
+except ValueError:
+    email_timeout = 10
+explicit_email_backend = (_get_env('EMAIL_BACKEND', '') or '').strip()
+
+_placeholder_email_users = {'', 'your-email@gmail.com', 'example@example.com', 'noreply@your-voting-system.com'}
+_placeholder_email_passwords = {'', 'your-app-password', 'changeme'}
+smtp_configured = (
+    bool(email_host)
+    and email_user not in _placeholder_email_users
+    and email_pass not in _placeholder_email_passwords
+)
+
+if explicit_email_backend:
+    EMAIL_BACKEND = explicit_email_backend
+elif DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+elif smtp_configured:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 else:
-    # Use fallback backend in production if SMTP is not properly configured
-    email_host = _get_env('EMAIL_HOST', 'smtp.gmail.com').strip()
-    email_user = _get_env('EMAIL_HOST_USER', '').strip()
-    email_pass = _get_env('EMAIL_HOST_PASSWORD', '').strip()
-    
-    # Only use SMTP if properly configured, otherwise fall back to console
-    if email_host and email_user and email_pass and email_host != 'smtp.gmail.com' and email_user != 'your-email@gmail.com':
-        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    else:
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-        
+    # Keep the app functional when SMTP is missing, but no external email delivery happens.
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 EMAIL_HOST = email_host
-EMAIL_PORT = int(_get_env('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = _get_env('EMAIL_USE_TLS', 'True').strip().lower() in ('1', 'true', 'yes')
-EMAIL_USE_SSL = _get_env('EMAIL_USE_SSL', 'False').strip().lower() in ('1', 'true', 'yes')
-EMAIL_TIMEOUT = int(_get_env('EMAIL_TIMEOUT', '10'))
+EMAIL_PORT = email_port
+EMAIL_USE_TLS = email_use_tls
+EMAIL_USE_SSL = email_use_ssl
+EMAIL_TIMEOUT = email_timeout
 EMAIL_HOST_USER = email_user
 EMAIL_HOST_PASSWORD = email_pass
 

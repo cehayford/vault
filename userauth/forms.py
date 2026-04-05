@@ -115,23 +115,23 @@ class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['first_name'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'First Name'
         })
         self.fields['last_name'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Last Name'
         })     
         self.fields['email'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Email Address'
         }) 
         self.fields['password1'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Password'
         })
         self.fields['password2'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Confirm Password'
         })
     
@@ -158,7 +158,7 @@ class LoginForm(AuthenticationForm):
         'invalid_login': 'Please enter a correct email address and password.',
         'no_account': 'No account found with this email address. You can sign up instead.',
         'wrong_password': 'Incorrect password. Try again or use "Forgot password?" to reset.',
-        'inactive': 'Please verify your email before signing in. Check your inbox (and spam) for the verification code.',
+        'inactive': 'Please verify your email before signing in. Check your inbox/spam, or use "Resend verification code" below.',
     }
 
     def __init__(self, *args, **kwargs):
@@ -173,14 +173,14 @@ class LoginForm(AuthenticationForm):
             label='Email address',
             max_length=254,
             widget=forms.EmailInput(attrs={
-                'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+                'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
                 'placeholder': 'Email address',
                 'autocomplete': 'email',
             }),
         )
         self.fields['password'] = password_field
         self.fields['password'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Password',
             'autocomplete': 'current-password',
         })
@@ -226,23 +226,23 @@ class UserSignUp(forms.ModelForm):
         fields = ['first_name', 'last_name', 'email', 'password']
         widgets = {
             'first_name': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+                'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
                 'placeholder': 'First Name',
                 'required': True
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+                'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
                 'placeholder': 'Last Name',
                 'required': True
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+                'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
                 'placeholder': 'Email Address',
                 'required': True,
                 'autocomplete': 'email'
             }),
             'password': forms.PasswordInput(attrs={
-                'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+                'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
                 'placeholder': 'Password',
                 'required': True,
                 'autocomplete': 'new-password'
@@ -272,7 +272,7 @@ class MFADisableForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['password'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Enter your password to confirm',
             'autocomplete': 'current-password'
         })
@@ -283,14 +283,14 @@ class MFAVerifyForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['token'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-2xl uppercase tracking-widest text-center focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-3 text-center text-2xl tracking-[0.3em] rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': '000000',
             'maxlength': '6',
             'pattern': '[0-9]{6}',
             'autocomplete': 'one-time-code'
         })
         self.fields['backup_code'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Enter backup code',
             'maxlength': '6',
             'pattern': '[0-9]{6}'
@@ -303,18 +303,18 @@ class ContactForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['name'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Your Name',
             'required': True
         })        
         self.fields['email'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Your Email',
             'required': True,
             'type': 'email'
         })
         self.fields['message'].widget.attrs.update({
-            'class': 'w-full px-4 py-3 focus:outline-none focus:ring-0 transition-all duration-200 bg-white border-4 border-amber-900 font-mono text-sm md:text-base uppercase tracking-wide focus:bg-amber-900 focus:text-white focus:placeholder-amber-200 placeholder-amber-900',
+            'class': 'w-full px-4 py-2.5 text-sm rounded-md border border-border bg-secondary text-foreground placeholder-muted focus:border-accent focus:outline-none transition-colors duration-fast',
             'placeholder': 'Your Message',
             'required': True,
             'rows': 4
@@ -405,3 +405,4 @@ class ProfileUpdateForm(forms.ModelForm):
         else:
             self.instance.phone_number = ''
         return super().save(commit=commit)
+

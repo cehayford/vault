@@ -1,9 +1,9 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Organisation, OrgMembership, Election
+from .models import Organisation, OrgMembership, Election, Ballot, Candidate
 
 
 class OrgAdminCoreTests(TestCase):
@@ -253,3 +253,266 @@ class RoleAssignmentTogglePolicyTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.other_super_admin.refresh_from_db()
         self.assertEqual(self.other_super_admin.role, 'super_admin')
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
+class CandidatePrivacyIsolationTests(TestCase):
+    """Candidate management pages must be isolated per manageable election scope."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.creator_a = User.objects.create_user(
+            email='creator-a@example.com',
+            first_name='Creator',
+            last_name='A',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        self.creator_b = User.objects.create_user(
+            email='creator-b@example.com',
+            first_name='Creator',
+            last_name='B',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        start = timezone.now()
+        end = start + timezone.timedelta(days=1)
+        self.election_a = Election.objects.create(
+            title='Election A',
+            description='Desc',
+            election_type='general',
+            voting_type='single_choice',
+            status='draft',
+            start_date=start,
+            end_date=end,
+            creator=self.creator_a,
+        )
+        self.ballot_a = Ballot.objects.create(
+            election=self.election_a,
+            title='Ballot A',
+            question='Question A?',
+            order=1,
+        )
+        self.candidate_a = Candidate.objects.create(
+            ballot=self.ballot_a,
+            name='Candidate A1',
+            order=1,
+        )
+
+    def test_other_creator_cannot_see_candidate_in_list(self):
+        self.client.login(email='creator-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:candidate_list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'Candidate A1')
+        page_obj = resp.context['page_obj']
+        self.assertEqual(page_obj.paginator.count, 0)
+
+    def test_other_creator_cannot_open_candidate_detail(self):
+        self.client.login(email='creator-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:candidate_detail', args=[self.candidate_a.pk]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_create_candidate_form_ballots_are_scoped(self):
+        start = timezone.now()
+        end = start + timezone.timedelta(days=1)
+        election_b = Election.objects.create(
+            title='Election B',
+            description='Desc',
+            election_type='general',
+            voting_type='single_choice',
+            status='draft',
+            start_date=start,
+            end_date=end,
+            creator=self.creator_b,
+        )
+        ballot_b = Ballot.objects.create(
+            election=election_b,
+            title='Ballot B',
+            question='Question B?',
+            order=1,
+        )
+        self.client.login(email='creator-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:create_candidate'))
+        self.assertEqual(resp.status_code, 200)
+        ballot_field = resp.context['form'].fields['ballot']
+        self.assertEqual(list(ballot_field.queryset), [ballot_b])
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
+class ElectionPrivacyIsolationTests(TestCase):
+    """Election views should block cross-creator access for election admins."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.creator_a = User.objects.create_user(
+            email='election-a@example.com',
+            first_name='Election',
+            last_name='A',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        self.creator_b = User.objects.create_user(
+            email='election-b@example.com',
+            first_name='Election',
+            last_name='B',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        start = timezone.now()
+        end = start + timezone.timedelta(days=1)
+        self.election_a = Election.objects.create(
+            title='Private Election A',
+            description='Desc',
+            election_type='general',
+            voting_type='single_choice',
+            status='draft',
+            start_date=start,
+            end_date=end,
+            creator=self.creator_a,
+        )
+        self.ballot_a = Ballot.objects.create(
+            election=self.election_a,
+            title='Private Ballot A',
+            question='Question A?',
+            order=1,
+        )
+        self.candidate_a = Candidate.objects.create(
+            ballot=self.ballot_a,
+            name='Private Candidate A',
+            order=1,
+        )
+
+    def test_other_creator_cannot_access_election_detail_by_url(self):
+        self.client.login(email='election-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:election_detail', args=[self.election_a.pk]))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_other_creator_cannot_access_election_results_by_url(self):
+        self.client.login(email='election-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:election_results', args=[self.election_a.pk]))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_other_creator_cannot_access_ballot_results_by_url(self):
+        self.client.login(email='election-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:ballot_results', args=[self.ballot_a.pk]))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_other_creator_does_not_see_private_election_in_election_list(self):
+        self.client.login(email='election-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:election_list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'Private Election A')
+
+    def test_owner_still_can_access_own_election_detail(self):
+        self.client.login(email='election-a@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:election_detail', args=[self.election_a.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Private Election A')
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
+class ElectionApiPrivacyTests(TestCase):
+    """API election list should be authenticated and creator-scoped for election admins."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.creator_a = User.objects.create_user(
+            email='api-a@example.com',
+            first_name='Api',
+            last_name='A',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        self.creator_b = User.objects.create_user(
+            email='api-b@example.com',
+            first_name='Api',
+            last_name='B',
+            password='TestPass123!',
+            role='election_admin',
+        )
+        start = timezone.now()
+        end = start + timezone.timedelta(days=1)
+        self.election_a = Election.objects.create(
+            title='API Election A',
+            description='Desc',
+            election_type='general',
+            voting_type='single_choice',
+            status='draft',
+            start_date=start,
+            end_date=end,
+            creator=self.creator_a,
+        )
+        self.election_b = Election.objects.create(
+            title='API Election B',
+            description='Desc',
+            election_type='general',
+            voting_type='single_choice',
+            status='draft',
+            start_date=start,
+            end_date=end,
+            creator=self.creator_b,
+        )
+
+    def test_api_requires_authentication(self):
+        resp = self.client.get(reverse('voting:api-election-list'))
+        self.assertIn(resp.status_code, (401, 403))
+
+    def test_api_returns_paginated_payload(self):
+        self.client.login(email='api-a@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:api-election-list'))
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertIn('count', payload)
+        self.assertIn('results', payload)
+        self.assertEqual(payload['count'], 1)
+
+    def test_api_enforces_creator_scope_for_election_admin(self):
+        self.client.login(email='api-b@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:api-election-list'))
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        titles = {item['title'] for item in payload['results']}
+        self.assertIn('API Election B', titles)
+        self.assertNotIn('API Election A', titles)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False, SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False)
+class UserListFilteringTests(TestCase):
+    """User list should support search and per-page controls."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.super_admin = User.objects.create_superuser(
+            email='ul-root@example.com',
+            first_name='Root',
+            last_name='User',
+            password='TestPass123!',
+        )
+        User.objects.create_user(
+            email='alice@example.com',
+            first_name='Alice',
+            last_name='Wright',
+            password='TestPass123!',
+            role='voter',
+        )
+        User.objects.create_user(
+            email='bob@example.com',
+            first_name='Bob',
+            last_name='Stone',
+            password='TestPass123!',
+            role='monitor',
+        )
+
+    def test_user_list_search_filters_by_email_or_name(self):
+        self.client.login(email='ul-root@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:user_list'), data={'search': 'alice'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'alice@example.com')
+        self.assertNotContains(resp, 'bob@example.com')
+
+    def test_user_list_respects_per_page_parameter(self):
+        self.client.login(email='ul-root@example.com', password='TestPass123!')
+        resp = self.client.get(reverse('voting:user_list'), data={'per_page': '10'})
+        self.assertEqual(resp.status_code, 200)
+        page_obj = resp.context['page_obj']
+        self.assertEqual(page_obj.paginator.per_page, 10)

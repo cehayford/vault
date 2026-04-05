@@ -30,6 +30,33 @@ from base64 import b64encode
 import json
 
 
+logger = logging.getLogger(__name__)
+
+
+def _email_backend_is_console():
+    backend = (getattr(settings, 'EMAIL_BACKEND', '') or '').lower()
+    return backend == 'django.core.mail.backends.console.emailbackend'
+
+
+def _send_verification_email(user, code, request):
+    current_site = get_current_site(request)
+    html_message = render_to_string('userauth/account_activation.html', {
+        'user': user,
+        'gen_code': code,
+        'domain': current_site.domain,
+    })
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')
+    sent_count = send_mail(
+        'Verify Your Email Address',
+        strip_tags(html_message),
+        from_email,
+        [user.email],
+        html_message=html_message,
+        fail_silently=False,
+    )
+    return sent_count > 0
+
+
 
 def _get_safe_next_url(request, default=None):
     next_url = request.POST.get('next') or request.GET.get('next') or ''
@@ -180,52 +207,19 @@ def signup(request):
             token = verify_user.generate_code()
             verify_user.code = token
             verify_user.save()
-            current_site = get_current_site(request)
-            subject = 'Verify Your Email Address'
-            message = render_to_string('userauth/email_verification.html', {
-                'user': user,
-                'token': token,
-                'domain': current_site.domain,
-            })
-            
-            # Try to send via Celery for better reliability
+            email_sent = False
             try:
-                from celery_app import send_email_notification
-                result = send_email_notification.delay(
-                    email,
-                    subject,
-                    message,
-                    html_message=message
-                )
-                # Check if task was successful (for immediate feedback)
-                if result and hasattr(result, 'result'):
-                    task_result = result.result
-                    if task_result and task_result.get('status') == 'failed':
-                        # Log the failure but continue with signup
-                        import logging
-                        logger = logging.getLogger(__name__)
-                        logger.warning(f'Email task failed for {email}: {task_result.get("error")}')
+                email_sent = _send_verification_email(user, token, request)
             except Exception as e:
-                # Fallback to direct email sending if Celery is not available
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f'Celery not available, falling back to direct email: {e}')
-                try:
-                    send_mail(
-                        subject,
-                        message,
-                        getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_FROM_ADDRESS),
-                        [email],
-                        fail_silently=False,
-                    )
-                except Exception as email_error:
-                    logger.warning(f'Direct email also failed for {email}: {email_error}')
-                    # In production with console backend, email will be printed to logs
-                    # so user can still get verification code from logs if needed
+                logger.warning('Verification email failed for %s: %s', email, e)
             domain = get_current_site(request).domain
-            ctx = {'domain': domain}
-            if settings.DEBUG:
+            ctx = {'domain': domain, 'user': user}
+            if settings.DEBUG or _email_backend_is_console() or not email_sent:
                 ctx['verification_code'] = token
+            if not email_sent:
+                messages.warning(request, 'We could not confirm email delivery. Use the verification code below.')
+            elif _email_backend_is_console():
+                messages.warning(request, 'Email sending is using console mode, so no inbox delivery happened. Use the code below.')
             return render(request, 'userauth/checkemailmsg.html', ctx)
         return render(request, 'userauth/signup.html', {'form': form, 'next': _get_safe_next_url(request) or ''})
     prefilled_email = request.GET.get('email', '')
@@ -686,32 +680,16 @@ def resend_verification(request):
     verification.is_used = False
     verification.attempts = 0
     verification.save()
-    current_site = get_current_site(request)
-    message = render_to_string('userauth/account_activation.html', {
-        'user': user,
-        'gen_code': verification.code,
-        'domain': current_site.domain,
-    })
+    email_sent = False
     try:
-        send_mail(
-            'Verify Your Email Address',
-            strip_tags(message),
-            getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_FROM_ADDRESS', 'noreply@example.com')),
-            [user.email],
-            html_message=message,
-            fail_silently=False,
-        )
+        email_sent = _send_verification_email(user, verification.code, request)
     except Exception as e:
-        # Log email error but don't fail the process
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f'Failed to resend verification email to {user.email}: {e}')
-        # In production with console backend, email will be printed to logs
-        
-    messages.success(request, 'A new verification code has been sent. Check your email or use the code below.')
-    
-    # Show the verification code in the message for immediate access
-    messages.info(request, f'Your verification code is: {verification.code}')
+        logger.warning('Failed to resend verification email to %s: %s', user.email, e)
+    if email_sent and not _email_backend_is_console():
+        messages.success(request, 'A new verification code has been sent. Check your email.')
+    else:
+        messages.warning(request, 'Email delivery could not be confirmed. Use the verification code below.')
+        messages.info(request, f'Your verification code is: {verification.code}')
     return redirect('userauth:email_verification')
 
 

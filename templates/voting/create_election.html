@@ -1,18 +1,1 @@
-{% extends 'base.html' %}
-{% block head %}<title>Create election</title>{% endblock %}
-{% block content %}
-<div class="min-h-screen py-8">
-    <div class="max-w-container mx-auto px-container-x">
-        <p class="mb-4"><a href="{% url 'voting:election_list' %}" class="text-accent font-medium text-sm hover:text-accent-hover">← Back to elections</a></p>
-        <h1 class="text-2xl font-display font-bold text-foreground tracking-tight border-b border-border pb-4 mb-6">Create election</h1>
-        <div class="card p-6 border border-border max-w-2xl">
-            <p class="text-muted text-sm mb-4">Dates: use YYYY-MM-DD HH:MM. Brand name and primary color are optional.</p>
-            <form method="post" class="space-y-4">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn-primary py-2.5 px-6 text-sm">Create election</button>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
+{% extends 'base.html' %} {% block head %}<title>Create election</title>{% endblock %} {% block content %} <div class="min-h-screen py-8"> <div class="max-w-container mx-auto px-container-x"> <p class="mb-4"><a href="{% url 'voting:election_list' %}" class="text-accent font-medium text-sm hover:text-accent-hover">← Back to elections</a></p> <h1 class="text-2xl font-display font-bold text-foreground tracking-tight border-b border-border pb-4 mb-6">Create election</h1> <div class="card p-6 border border-border max-w-2xl"> <p class="text-muted text-sm mb-4">Dates: use YYYY-MM-DD HH:MM. Brand name and primary color are optional.</p> <form method="post" class="space-y-4"> {% csrf_token %} {{ form.as_p }} <button type="submit" class="btn-primary py-2.5 px-6 text-sm">Create election</button> </form> </div> </div> </div> {% endblock %} 

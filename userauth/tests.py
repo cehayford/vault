@@ -227,3 +227,68 @@ class OTPEmailUnitTests(SimpleTestCase):
         sent = _send_phone_otp_email_sync("valid@example.com", "123456")
         self.assertFalse(sent)
         mock_send_mail.assert_called_once()
+
+
+@override_settings(DEBUG=False, SECURE_SSL_REDIRECT=False)
+class VerificationEmailFlowTests(TestCase):
+    def _signup_payload(self, email):
+        return {
+            "first_name": "Mail",
+            "last_name": "Tester",
+            "email": email,
+            "password": "StrongPass123!",
+        }
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend")
+    @patch("userauth.views._send_verification_email", return_value=False)
+    def test_signup_shows_code_when_delivery_not_confirmed(self, mock_send):
+        email = "signup.fallback@example.com"
+        response = self.client.post(reverse("userauth:signup"), self._signup_payload(email))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "userauth/checkemailmsg.html")
+        user = User.objects.get(email=email)
+        verification = EmailVerification.objects.get(user=user)
+        self.assertContains(response, verification.code)
+        self.assertContains(response, "We could not confirm email delivery")
+        mock_send.assert_called_once()
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend")
+    @patch("userauth.views._send_verification_email", return_value=True)
+    def test_signup_hides_code_when_delivery_confirmed(self, mock_send):
+        email = "signup.smtp@example.com"
+        response = self.client.post(reverse("userauth:signup"), self._signup_payload(email))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "userauth/checkemailmsg.html")
+        self.assertNotContains(response, "Your Verification Code:")
+        mock_send.assert_called_once()
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend")
+    @patch("userauth.views._send_verification_email", return_value=False)
+    def test_resend_shows_fallback_code_when_delivery_not_confirmed(self, mock_send):
+        user = User.objects.create_user(
+            email="resend.fallback@example.com",
+            first_name="Re",
+            last_name="Send",
+            password="StrongPass123!",
+            is_active=False,
+            is_verified=False,
+            data_consent=True,
+        )
+        EmailVerification.objects.create(
+            user=user,
+            code="123456",
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            reverse("userauth:resend_verification"),
+            {"email": user.email},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email delivery could not be confirmed")
+        self.assertContains(response, "Your verification code is:")
+        mock_send.assert_called_once()
